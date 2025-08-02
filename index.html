@@ -863,4 +863,153 @@
           const columnIndex = Array.from(th.parentNode.children).indexOf(th);
           
           if (currentSort.column === column) {
-            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : '
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSort.column = column;
+            currentSort.direction = 'asc';
+          }
+          
+          sortTable(table, columnIndex, currentSort.direction);
+          
+          // Update sort indicators
+          document.querySelectorAll('.sort-indicator').forEach(indicator => {
+            indicator.textContent = '↕';
+          });
+          th.querySelector('.sort-indicator').textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+        });
+      });
+
+      // Filter buttons
+      let isPendingFilterActive = false;
+      document.getElementById("filterPendingButton").addEventListener("click", () => {
+        const pendingTable = document.getElementById("pendingTable");
+        const button = document.getElementById("filterPendingButton");
+
+        if (isPendingFilterActive) {
+          Array.from(pendingTable.rows).forEach(row => row.style.display = "");
+          button.textContent = "Show Pending Payments";
+          button.classList.remove('primary');
+        } else {
+          Array.from(pendingTable.rows).forEach(row => {
+            const pendingPayment = parseFloat(row.cells[1]?.textContent || "0");
+            row.style.display = pendingPayment > 0 ? "" : "none";
+          });
+          button.textContent = "Show All Records";
+          button.classList.add('primary');
+        }
+
+        isPendingFilterActive = !isPendingFilterActive;
+        updateStatistics();
+      });
+
+      let isPrepayFilterActive = false;
+      document.getElementById("filterPrepayButton").addEventListener("click", () => {
+        const pendingTable = document.getElementById("pendingTable");
+        const button = document.getElementById("filterPrepayButton");
+
+        if (isPrepayFilterActive) {
+          Array.from(pendingTable.rows).forEach(row => row.style.display = "");
+          button.textContent = "Show Prepay Records";
+          button.classList.remove('primary');
+        } else {
+          Array.from(pendingTable.rows).forEach(row => {
+            const prepayBalance = parseFloat(row.cells[2]?.textContent || "0");
+            row.style.display = prepayBalance > 0 ? "" : "none";
+          });
+          button.textContent = "Show All Records";
+          button.classList.add('primary');
+        }
+
+        isPrepayFilterActive = !isPrepayFilterActive;
+        updateStatistics();
+      });
+
+      // Clear all filters
+      document.getElementById("clearFiltersButton").addEventListener("click", () => {
+        document.getElementById("nameFilter").value = "all";
+        document.getElementById("monthFilter").value = "all";
+        document.getElementById("nameSearch").value = "";
+        document.getElementById('filter2024Button').checked = false;
+        document.getElementById('filter2025Button').checked = true;
+        
+        // Reset filter buttons
+        if (isPendingFilterActive) {
+          document.getElementById("filterPendingButton").click();
+        }
+        if (isPrepayFilterActive) {
+          document.getElementById("filterPrepayButton").click();
+        }
+        
+        // Reset quick filters
+        document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('[data-period="all"]').classList.add('active');
+        
+        applyFilters();
+      });
+
+      // Quick filter buttons
+      document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          const period = btn.dataset.period;
+          const currentDate = new Date();
+          
+          // This would need backend support for date filtering
+          // For now, just visual feedback
+          console.log(`Filter by period: ${period}`);
+        });
+      });
+
+      // Month navigation
+      document.getElementById('prevMonth').addEventListener('click', () => {
+        // This would need backend support for month navigation
+        console.log('Navigate to previous month');
+      });
+
+      document.getElementById('nextMonth').addEventListener('click', () => {
+        // This would need backend support for month navigation
+        console.log('Navigate to next month');
+      });
+
+      // Export functionality
+      document.getElementById('exportPendingBtn').addEventListener('click', () => {
+        exportToCSV('pendingTable', 'ufa-payment-status.csv');
+      });
+
+      document.getElementById('exportAttendanceBtn').addEventListener('click', () => {
+        exportToCSV('attendanceTable', 'ufa-attendance-records.csv');
+      });
+
+      // Calculate costs button
+      document.getElementById('calculateCostsBtn').addEventListener('click', () => {
+        const totalSessions = document.querySelectorAll('#attendanceTable tr').length;
+        const avgAttendance = 18; // This should be calculated from actual data
+        const memberCost = (700 / avgAttendance).toFixed(1);
+        const nonMemberCost = (parseFloat(memberCost) + 15).toFixed(1);
+        
+        alert(`Session Cost Calculation:\n\nField Cost: 700 MVR\nAverage Attendance: ${avgAttendance} players\n\nMember Cost: ${memberCost} MVR per session\nNon-member Cost: ${nonMemberCost} MVR per session`);
+      });
+
+      // Initial filter to show pending payments
+      document.getElementById("filterPendingButton").click();
+    });
+
+    const removeFilter = (filterText) => {
+      // Parse filter text and remove corresponding filter
+      if (filterText.startsWith('Name:')) {
+        document.getElementById("nameFilter").value = "all";
+      } else if (filterText.startsWith('Month:')) {
+        document.getElementById("monthFilter").value = "all";
+      } else if (filterText.includes('2024')) {
+        document.getElementById('filter2024Button').checked = false;
+      } else if (filterText.includes('2025')) {
+        document.getElementById('filter2025Button').checked = false;
+      }
+      
+      applyFilters();
+    };
+  </script>
+</body>
+</html>
