@@ -3,559 +3,665 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UFA Central - Enhanced</title>
+  <title>UFA Central - Payment Tracker</title>
   <style>
     * {
       box-sizing: border-box;
     }
-    
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #f8fafc;
+      background: linear-gradient(145deg, #dfc9ff 0%, #92c9ff 100%);
+      min-height: 100vh;
     }
 
-    header {
-      background: linear-gradient(135deg, #488daa 0%, #357a8b 100%);
-      color: white;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-
-    .logo-placeholder {
-      background: rgba(255,255,255,0.2);
-      height: 60px;
-      margin: 0 auto 10px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 200px;
-      border: 2px dashed rgba(255,255,255,0.5);
-    }
-
-    main {
+    .container {
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
     }
 
-    .stats-dashboard {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-      margin-bottom: 25px;
+    header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
     }
 
-    .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      border-left: 4px solid #488daa;
-    }
-
-    .stat-value {
-      font-size: 24px;
+    .logo {
+      color: #488daa;
+      font-size: 2.5rem;
       font-weight: bold;
-      color: #1e293b;
-      margin-bottom: 5px;
+      margin-bottom: 10px;
     }
 
-    .stat-label {
-      color: #64748b;
-      font-size: 14px;
+    .subtitle {
+      color: #666;
+      font-size: 1.1rem;
     }
 
-    .filters-section {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .search-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .search-container {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      flex-wrap: wrap;
       margin-bottom: 20px;
     }
 
-    .filter-row {
+    .search-input {
+      flex: 1;
+      min-width: 250px;
+      padding: 15px 20px;
+      border: 2px solid #e1e5e9;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #488daa;
+      box-shadow: 0 0 0 3px rgba(72, 141, 170, 0.1);
+    }
+
+    .btn {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #488daa, #357a96);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(72, 141, 170, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #495057;
+      border: 2px solid #e9ecef;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+      transform: translateY(-1px);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #488daa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
       display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
       align-items: center;
-      margin-bottom: 15px;
+      gap: 10px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 20px;
+    }
+
+    .summary-item {
+      text-align: center;
+      padding: 20px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    }
+
+    .summary-value {
+      font-size: min(2rem, 5vw);
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .summary-label {
+      font-size: min(0.9rem, 3vw);
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .pending {
+      background: linear-gradient(135deg, #ffebee, #ffcdd2);
+      color: #c62828;
+    }
+
+    .prepaid {
+      background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
+      color: #2e7d32;
+    }
+
+    .neutral {
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      color: #374151;
+    }
+
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #e1e5e9;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th {
+      background: #f8f9fa;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      border-bottom: 2px solid #e9ecef;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th:hover {
+      background: #e9ecef;
+    }
+
+    th.sortable::after {
+      content: ' ↕';
+      opacity: 0.5;
+    }
+
+    th.sort-asc::after {
+      content: ' ↑';
+      opacity: 1;
+    }
+
+    th.sort-desc::after {
+      content: ' ↓';
+      opacity: 1;
+    }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+      vertical-align: middle;
+      font-size: min(14px, 3.5vw);
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: min(0.8rem, 2.5vw);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-member {
+      background: #e3f2fd;
+      color: #1565c0;
+    }
+
+    .status-non-member {
+      background: #fff3e0;
+      color: #ef6c00;
+    }
+
+    .filters {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
     }
 
     .filter-group {
       display: flex;
       flex-direction: column;
       gap: 5px;
+      min-width: 120px;
     }
 
-    .filter-group label {
-      font-size: 12px;
+    .filter-label {
+      font-size: min(0.85rem, 3vw);
       font-weight: 600;
-      color: #374151;
+      color: #495057;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
-    .month-nav {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #f1f5f9;
-      padding: 10px;
-      border-radius: 6px;
-    }
-
-    .month-nav button {
-      background: #488daa;
-      color: white;
-      border: none;
+    select, input[type="date"] {
       padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .month-nav button:hover {
-      background: #357a8b;
-    }
-
-    .current-month {
-      font-weight: 600;
-      color: #1e293b;
-      min-width: 100px;
-      text-align: center;
-    }
-
-    .quick-filters {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .quick-filter-btn {
-      background: #e2e8f0;
-      border: 1px solid #cbd5e1;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .quick-filter-btn.active {
-      background: #488daa;
-      color: white;
-      border-color: #488daa;
-    }
-
-    .quick-filter-btn:hover {
-      background: #cbd5e1;
-    }
-
-    .search-box {
-      position: relative;
-      min-width: 200px;
-    }
-
-    .search-box input {
-      width: 100%;
-      padding: 8px 35px 8px 12px;
-      border: 1px solid #d1d5db;
+      border: 1px solid #ced4da;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: min(14px, 3.5vw);
     }
 
-    .search-icon {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #9ca3af;
-    }
-
-    .active-filters {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
-
-    .filter-tag {
-      background: #fef3c7;
-      color: #92400e;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .filter-tag .remove {
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .data-section {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .section-header {
-      background: #f8fafc;
-      padding: 15px 20px;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #1e293b;
-      margin: 0;
-    }
-
-    .section-actions {
-      display: flex;
-      gap: 10px;
-    }
-
-    .btn {
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: 1px solid #d1d5db;
-      background: white;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .btn:hover {
-      background: #f9fafb;
-    }
-
-    .btn.primary {
-      background: #488daa;
-      color: white;
-      border-color: #488daa;
-    }
-
-    .btn.primary:hover {
-      background: #357a8b;
-    }
-
-    .table-container {
-      max-height: 400px;
-      overflow: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th {
-      background: #f8fafc;
-      padding: 12px;
-      text-align: left;
-      font-weight: 600;
-      font-size: 12px;
-      color: #374151;
-      text-transform: uppercase;
-      border-bottom: 1px solid #e2e8f0;
-      position: sticky;
-      top: 0;
-      cursor: pointer;
-    }
-
-    th:hover {
-      background: #f1f5f9;
-    }
-
-    th .sort-indicator {
-      margin-left: 5px;
-      opacity: 0.5;
-    }
-
-    td {
-      padding: 12px;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 14px;
-    }
-
-    tr:hover {
-      background: #f8fafc;
-    }
-
-    .status-pending {
-      color: #dc2626;
-      font-weight: 600;
-    }
-
-    .status-paid {
-      color: #16a34a;
-      font-weight: 600;
-    }
-
-    .status-prepay {
-      color: #2563eb;
-      font-weight: 600;
-    }
-
-    .table-summary {
-      background: #f8fafc;
-      padding: 15px 20px;
-      border-top: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-    }
-
-    .summary-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .summary-value {
-      font-size: 18px;
-      color: #1e293b;
-    }
-
-    .summary-label {
-      font-size: 12px;
-      color: #64748b;
-      text-transform: uppercase;
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #6c757d;
+      font-style: italic;
     }
 
     .highlight {
-      background-color: #fef3c7 !important;
+      background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+      border-left: 4px solid #ffc107;
     }
 
+    .quick-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .quick-stat {
+      text-align: center;
+    }
+
+    .quick-stat-value {
+      font-size: min(1.4rem, 4vw);
+      font-weight: bold;
+      color: #488daa;
+    }
+
+    .quick-stat-label {
+      font-size: min(0.8rem, 2.5vw);
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .welcome-message {
+      background: linear-gradient(135deg, #e8f4f8, #d4edda);
+      border: 1px solid #b8daff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .welcome-title {
+      font-size: min(1.4rem, 4.5vw);
+      font-weight: 600;
+      color: #155724;
+      margin-bottom: 8px;
+    }
+
+    .welcome-subtitle {
+      color: #155724;
+      opacity: 0.8;
+      font-size: min(1rem, 3.5vw);
+    }
+
+    /* Mobile-specific optimizations */
     @media (max-width: 768px) {
-      .filter-row {
+      .container {
+        padding: 10px;
+      }
+      
+      .search-container {
         flex-direction: column;
         align-items: stretch;
       }
       
-      .stats-dashboard {
+      .search-input {
+        min-width: unset;
+      }
+      
+      .dashboard {
         grid-template-columns: 1fr;
+        gap: 20px;
       }
       
-      .month-nav {
-        justify-content: center;
+      .filters {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
       }
       
-      .table-summary {
+      .filter-group {
+        min-width: unset;
+      }
+      
+      .summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .logo {
+        font-size: 2rem;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+      }
+
+      header {
+        padding: 20px;
+      }
+
+      .search-section {
+        padding: 20px;
+      }
+
+      .btn {
+        padding: 12px 20px;
+        font-size: 12px;
+      }
+
+      .quick-stats {
         flex-direction: column;
         gap: 15px;
       }
-      
-      .section-header {
-        flex-direction: column;
+
+      table {
+        min-width: 500px;
+        font-size: 12px;
+      }
+
+      th, td {
+        padding: 8px 6px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 5px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
         gap: 10px;
-        align-items: stretch;
+      }
+
+      .logo {
+        font-size: 1.8rem;
+      }
+
+      .card-title {
+        font-size: 1.1rem;
+      }
+
+      table {
+        min-width: 450px;
+        font-size: 11px;
+      }
+
+      th, td {
+        padding: 6px 4px;
       }
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo-placeholder">UFA Logo Banner</div>
-    <p>Pending Sessions updated till 1st August 2025</p>
-  </header>
-
-  <main>
-    <!-- Statistics Dashboard -->
-    <div class="stats-dashboard" id="statsCards">
-      <div class="stat-card">
-        <div class="stat-value" id="totalPending">0</div>
-        <div class="stat-label">Players with Pending</div>
+  <div class="container">
+    <header>
+      <div class="logo">🥏 UFA Central</div>
+      <div class="subtitle">Ultimate Frisbee Association Payment Tracker</div>
+      <div style="margin-top: 15px; font-size: 0.9rem; color: #888;">
+        Updated till 1st August 2025
       </div>
-      <div class="stat-card">
-        <div class="stat-value" id="totalAmount">0 MVR</div>
-        <div class="stat-label">Total Pending Amount</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="avgCost">0 MVR</div>
-        <div class="stat-label">Avg Cost/Session</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="nonMemberCost">0 MVR</div>
-        <div class="stat-label">Non-member Cost</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="avgAttendance">0</div>
-        <div class="stat-label">Avg Attendance</div>
-      </div>
-    </div>
+    </header>
 
-    <!-- Enhanced Filters -->
-    <div class="filters-section">
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>Month Navigation</label>
-          <div class="month-nav">
-            <button id="prevMonth">‹ Prev</button>
-            <div class="current-month" id="currentMonth">August 2025</div>
-            <button id="nextMonth">Next ›</button>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>Quick Filters</label>
-          <div class="quick-filters">
-            <div class="quick-filter-btn" data-period="current">Current Month</div>
-            <div class="quick-filter-btn" data-period="last">Last Month</div>
-            <div class="quick-filter-btn" data-period="last3">Last 3 Months</div>
-            <div class="quick-filter-btn active" data-period="all">All Time</div>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>Search Players</label>
-          <div class="search-box">
-            <input type="text" id="nameSearch" placeholder="Search by name...">
-            <span class="search-icon">🔍</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="filter-row">
-        <div class="filter-group">
-          <label>Select Name</label>
-          <select id="nameFilter">
-            <option value="all">All Names</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>Select Month</label>
-          <select id="monthFilter">
-            <option value="all">All Months</option>
-          </select>
-        </div>
-
-        <div class="filter-group">
-          <label>Year Filters</label>
-          <div style="display: flex; gap: 10px;">
-            <label style="display: flex; align-items: center; gap: 5px; text-transform: none;">
-              <input type="checkbox" id="filter2024Button"> 2024
-            </label>
-            <label style="display: flex; align-items: center; gap: 5px; text-transform: none;">
-              <input type="checkbox" id="filter2025Button" checked> 2025
-            </label>
-          </div>
-        </div>
-
-        <div class="filter-group">
-          <label>Payment Status</label>
-          <div style="display: flex; gap: 10px;">
-            <button class="btn" id="filterPendingButton">Show Pending Payments</button>
-            <button class="btn" id="filterPrepayButton">Show Prepay Records</button>
-            <button class="btn" id="clearFiltersButton">Clear All</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Active Filters Display -->
-      <div class="active-filters" id="activeFilters"></div>
-    </div>
-
-    <!-- Enhanced Pending/Prepay Table -->
-    <div class="data-section">
-      <div class="section-header">
-        <h2 class="section-title">Payment Status</h2>
-        <div class="section-actions">
-          <button class="btn" id="exportPendingBtn">📊 Export CSV</button>
-          <button class="btn primary" id="calculateCostsBtn">💰 Calculate Costs</button>
-        </div>
+    <div class="search-section">
+      <h2 style="margin-top: 0; color: #333; font-size: 1.5rem;">Find Your Payment Status</h2>
+      <div class="search-container">
+        <input type="text" id="nameSearch" class="search-input" placeholder="Start typing your name...">
+        <button id="clearSearch" class="btn btn-secondary">Clear</button>
+        <button id="showAllData" class="btn btn-secondary">View All Data</button>
       </div>
       
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th data-sort="name">Name <span class="sort-indicator">↕</span></th>
-              <th data-sort="pending">Pending Amount <span class="sort-indicator">↕</span></th>
-              <th data-sort="prepay">Prepay Balance <span class="sort-indicator">↕</span></th>
-              <th data-sort="sessions">Sessions This Month <span class="sort-indicator">↕</span></th>
-            </tr>
-          </thead>
-          <tbody id="pendingTable"></tbody>
-        </table>
+      <div id="searchSuggestions" style="display: none; margin-top: 10px;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select your name:</div>
+        <div id="suggestionList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+      </div>
+    </div>
+
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div>
+      Loading payment data...
+    </div>
+
+    <div id="welcomeMessage" class="welcome-message" style="display: none;">
+      <div class="welcome-title">Welcome to UFA Payment Tracker!</div>
+      <div class="welcome-subtitle">Search for your name above to view your personal payment status and attendance history.</div>
+    </div>
+
+    <div id="userDashboard" style="display: none;">
+      <div id="personalWelcome" class="welcome-message">
+        <div class="welcome-title">Welcome back, <span id="selectedUserName"></span>!</div>
+        <div class="welcome-subtitle">Here's your complete payment and attendance summary</div>
       </div>
 
-      <div class="table-summary">
-        <div class="summary-item">
-          <div class="summary-value" id="visiblePlayers">0</div>
-          <div class="summary-label">Visible Players</div>
+      <div class="dashboard">
+        <div class="card">
+          <div class="card-title">
+            💰 Payment Summary
+          </div>
+          <div class="summary-grid">
+            <div id="pendingSummary" class="summary-item pending">
+              <div class="summary-value" id="pendingAmount">0</div>
+              <div class="summary-label">Pending</div>
+            </div>
+            <div id="prepaySummary" class="summary-item prepaid">
+              <div class="summary-value" id="prepayAmount">0</div>
+              <div class="summary-label">Prepaid</div>
+            </div>
+            <div class="summary-item neutral">
+              <div class="summary-value" id="totalPayment">0</div>
+              <div class="summary-label">Total Payment</div>
+            </div>
+          </div>
+          <div class="quick-stats">
+            <div class="quick-stat">
+              <div class="quick-stat-value" id="totalSessions">0</div>
+              <div class="quick-stat-label">Total Sessions</div>
+            </div>
+            <div class="quick-stat">
+              <div class="quick-stat-value" id="avgCost">0</div>
+              <div class="quick-stat-label">Avg Cost/Session</div>
+            </div>
+          </div>
         </div>
-        <div class="summary-item">
-          <div class="summary-value" id="visiblePending">0 MVR</div>
-          <div class="summary-label">Total Pending</div>
+
+        <div class="card">
+          <div class="card-title">
+            📊 Activity Overview
+          </div>
+          <div class="summary-grid">
+            <div class="summary-item neutral">
+              <div class="summary-value" id="sessions2024">0</div>
+              <div class="summary-label">2024 Sessions</div>
+            </div>
+            <div class="summary-item neutral">
+              <div class="summary-value" id="sessions2025">0</div>
+              <div class="summary-label">2025 Sessions</div>
+            </div>
+            <div class="summary-item neutral">
+              <div class="summary-value" id="recentSessions">0</div>
+              <div class="summary-label">Last 30 Days</div>
+            </div>
+          </div>
         </div>
-        <div class="summary-item">
-          <div class="summary-value" id="visiblePrepay">0 MVR</div>
-          <div class="summary-label">Total Prepaid</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          📅 Your Attendance History
         </div>
-        <div class="summary-item">
-          <div class="summary-value" id="filteredResults">0</div>
-          <div class="summary-label">Filtered Results</div>
+        
+        <div class="filters">
+          <div class="filter-group">
+            <label class="filter-label">Month</label>
+            <select id="monthFilter">
+              <option value="all">All Months</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Year</label>
+            <select id="yearFilter">
+              <option value="all">All Years</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Location</label>
+            <select id="locationFilter">
+              <option value="all">All Locations</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">From Date</label>
+            <input type="date" id="fromDate">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">To Date</label>
+            <input type="date" id="toDate">
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th class="sortable" data-column="0">Date</th>
+                <th class="sortable" data-column="1">Location</th>
+                <th class="sortable" data-column="2">Month</th>
+                <th class="sortable" data-column="3">Cost</th>
+                <th class="sortable" data-column="4">Membership</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTable"></tbody>
+          </table>
+        </div>
+        <div id="noAttendanceData" class="no-data" style="display: none;">
+          No attendance records found for the selected filters.
         </div>
       </div>
     </div>
 
-    <!-- Enhanced Attendance Table -->
-    <div class="data-section">
-      <div class="section-header">
-        <h2 class="section-title">Session Attendance</h2>
-        <div class="section-actions">
-          <button class="btn" id="exportAttendanceBtn">📊 Export CSV</button>
-          <button class="btn">📈 View Trends</button>
+    <div id="allDataView" style="display: none;">
+      <div class="card">
+        <div class="card-title">
+          📋 All Payment Records
         </div>
-      </div>
-      
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th data-sort="name">Name <span class="sort-indicator">↕</span></th>
-              <th data-sort="location">Location <span class="sort-indicator">↕</span></th>
-              <th data-sort="month">Month <span class="sort-indicator">↕</span></th>
-              <th data-sort="date">Date <span class="sort-indicator">↕</span></th>
-              <th data-sort="cost">Cost Per Session <span class="sort-indicator">↕</span></th>
-            </tr>
-          </thead>
-          <tbody id="attendanceTable"></tbody>
-        </table>
-      </div>
+        
+        <div class="filters">
+          <div class="filter-group">
+            <label class="filter-label">Filter By</label>
+            <select id="paymentStatusFilter">
+              <option value="all">All Records</option>
+              <option value="pending">Pending Payments</option>
+              <option value="prepaid">Prepaid Balance</option>
+              <option value="balanced">Balanced (0)</option>
+            </select>
+          </div>
+        </div>
 
-      <div class="table-summary">
-        <div class="summary-item">
-          <div class="summary-value" id="totalSessions">0</div>
-          <div class="summary-label">Total Sessions</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-value" id="attendanceAvg">0</div>
-          <div class="summary-label">Avg Attendance</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-value" id="avgSessionCost">0 MVR</div>
-          <div class="summary-label">Avg Session Cost</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th class="sortable" data-column="0">Name</th>
+                <th class="sortable" data-column="1">Pending</th>
+                <th class="sortable" data-column="2">Prepay Balance</th>
+                <th class="sortable" data-column="3">Total Payment</th>
+              </tr>
+            </thead>
+            <tbody id="allPaymentsTable"></tbody>
+          </table>
         </div>
       </div>
     </div>
-  </main>
+  </div>
 
   <script>
     const apiKey = "AIzaSyB4FKQrbrtGpBztkZVriYkEGsXlnLXHAN0";
@@ -564,452 +670,464 @@
 
     let summaryData = [];
     let attendanceData = [];
-    let currentSort = { column: null, direction: 'asc' };
+    let allNames = [];
+    let selectedUser = null;
+    let currentSortColumn = null;
+    let currentSortDirection = 'asc';
 
     const fetchData = async (sheetName) => {
       try {
         const response = await fetch(`${baseURL}/${sheetName}?key=${apiKey}`);
+        if (!response.ok) throw new Error('Failed to fetch data');
         const data = await response.json();
-        return data.values;
+        return data.values || [];
       } catch (error) {
         console.error('Error fetching data:', error);
         return [];
       }
     };
 
-    const updateStatistics = () => {
-      const visibleRows = Array.from(document.getElementById('pendingTable').rows).filter(row => row.style.display !== 'none');
-      
-      let totalPending = 0;
-      let playersWithPending = 0;
-      let totalPrepay = 0;
-      
-      visibleRows.forEach(row => {
-        const pending = parseFloat(row.cells[1]?.textContent || "0");
-        const prepay = parseFloat(row.cells[2]?.textContent || "0");
-        
-        if (pending > 0) {
-          totalPending += pending;
-          playersWithPending++;
-        }
-        if (prepay > 0) {
-          totalPrepay += prepay;
-        }
-      });
-
-      // Calculate average attendance and costs from attendance data
-      let totalAttendance = 0;
-      let sessionCount = 0;
-      let totalCosts = 0;
-      
-      const uniqueSessions = new Set();
-      attendanceData.forEach(row => {
-        const sessionKey = `${row[2]}-${row[3]}`; // month-date
-        if (!uniqueSessions.has(sessionKey)) {
-          uniqueSessions.add(sessionKey);
-          sessionCount++;
-        }
-        
-        const cost = parseFloat(row[4] || "0");
-        if (cost > 0) {
-          totalCosts += cost;
-          totalAttendance += 18; // Assuming average of 18 per session for calculation
-        }
-      });
-
-      const avgAttendance = sessionCount > 0 ? Math.round(totalAttendance / sessionCount) : 0;
-      const avgCost = sessionCount > 0 ? (700 / avgAttendance).toFixed(1) : 0;
-      const nonMemberCost = avgCost > 0 ? (parseFloat(avgCost) + 15).toFixed(1) : 0;
-
-      // Update dashboard
-      document.getElementById('totalPending').textContent = playersWithPending;
-      document.getElementById('totalAmount').textContent = `${totalPending.toFixed(0)} MVR`;
-      document.getElementById('avgCost').textContent = `${avgCost} MVR`;
-      document.getElementById('nonMemberCost').textContent = `${nonMemberCost} MVR`;
-      document.getElementById('avgAttendance').textContent = avgAttendance;
-
-      // Update table summaries
-      document.getElementById('visiblePlayers').textContent = visibleRows.length;
-      document.getElementById('visiblePending').textContent = `${totalPending.toFixed(0)} MVR`;
-      document.getElementById('visiblePrepay').textContent = `${totalPrepay.toFixed(0)} MVR`;
-      document.getElementById('filteredResults').textContent = visibleRows.length;
+    const formatCurrency = (amount) => {
+      return amount ? `${Math.abs(parseFloat(amount)).toFixed(0)} MVR` : '0 MVR';
     };
 
-    const populateFilters = (names, months) => {
-      const nameFilter = document.getElementById("nameFilter");
-      const nameSearch = document.getElementById("nameSearch");
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.trim().split('/');
+      if (parts.length === 3) {
+        const day = parts[0];
+        const month = parts[1];
+        const year = parts[2];
+        return new Date(year, month - 1, day);
+      }
+      return null;
+    };
+
+    const isWithinDateRange = (dateStr, fromDate, toDate) => {
+      const date = parseDate(dateStr);
+      if (!date) return true;
       
-      const updateNameFilter = (filteredNames) => {
-        nameFilter.innerHTML = '<option value="all">All Names</option>';
-        filteredNames.forEach(name => {
-          const option = document.createElement("option");
-          option.value = name;
-          option.textContent = name;
-          nameFilter.appendChild(option);
+      if (fromDate && date < new Date(fromDate)) return false;
+      if (toDate && date > new Date(toDate)) return false;
+      return true;
+    };
+
+    const parseCostFromString = (costStr) => {
+      if (!costStr) return 0;
+      // Remove 'Rf' prefix and any other non-numeric characters except decimal point
+      const numericValue = costStr.toString().replace(/[^\d.-]/g, '');
+      return parseFloat(numericValue) || 0;
+    };
+
+    const setupTableSorting = () => {
+      document.querySelectorAll('th.sortable').forEach(header => {
+        header.addEventListener('click', () => {
+          const column = parseInt(header.dataset.column);
+          const table = header.closest('table');
+          const tbody = table.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
+          
+          // Toggle sort direction
+          if (currentSortColumn === column) {
+            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+          } else {
+            currentSortDirection = 'asc';
+            currentSortColumn = column;
+          }
+          
+          // Update header classes
+          document.querySelectorAll('th.sortable').forEach(h => {
+            h.classList.remove('sort-asc', 'sort-desc');
+          });
+          header.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+          
+          // Sort rows
+          rows.sort((a, b) => {
+            let aVal = a.cells[column]?.textContent?.trim() || '';
+            let bVal = b.cells[column]?.textContent?.trim() || '';
+            
+            // Handle different data types
+            if (column === 0) { // Date column
+              aVal = parseDate(aVal) || new Date(0);
+              bVal = parseDate(bVal) || new Date(0);
+            } else if (column === 3) { // Cost column - extract numeric value
+              aVal = parseCostFromString(aVal);
+              bVal = parseCostFromString(bVal);
+            } else if (aVal.includes('MVR') || bVal.includes('MVR')) { // Currency columns
+              aVal = parseCostFromString(aVal);
+              bVal = parseCostFromString(bVal);
+            }
+            
+            if (typeof aVal === 'number' && typeof bVal === 'number') {
+              return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            } else if (aVal instanceof Date && bVal instanceof Date) {
+              return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+            } else {
+              // String comparison
+              aVal = aVal.toString().toLowerCase();
+              bVal = bVal.toString().toLowerCase();
+              return currentSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            }
+          });
+          
+          // Re-append sorted rows
+          rows.forEach(row => tbody.appendChild(row));
         });
-      };
-
-      updateNameFilter(names);
-
-      nameSearch.addEventListener("input", () => {
-        const searchValue = nameSearch.value.toLowerCase();
-        const filteredNames = names.filter(name => name.toLowerCase().includes(searchValue));
-        updateNameFilter(filteredNames);
-        
-        // Highlight matching rows
-        highlightSearchResults(searchValue);
       });
+    };
 
-      const monthOrder = [
-        "January", "February", "March", "April", "May", "June", "July", "August", 
-        "September", "October", "November", "December"
-      ];
-
-      const sortedMonths = months.sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
-
-      const monthFilter = document.getElementById("monthFilter");
-      sortedMonths.forEach(month => {
-        const option = document.createElement("option");
+    const initializeFilters = () => {
+      const months = [...new Set(attendanceData.map(row => row[2]))].filter(Boolean);
+      const locations = [...new Set(attendanceData.map(row => row[1]))].filter(Boolean);
+      
+      const monthFilter = document.getElementById('monthFilter');
+      months.forEach(month => {
+        const option = document.createElement('option');
         option.value = month;
         option.textContent = month;
         monthFilter.appendChild(option);
       });
-    };
 
-    const highlightSearchResults = (searchTerm) => {
-      const rows = document.getElementById('pendingTable').rows;
-      Array.from(rows).forEach(row => {
-        const name = row.cells[0]?.textContent.toLowerCase();
-        if (searchTerm && name.includes(searchTerm)) {
-          row.classList.add('highlight');
-        } else {
-          row.classList.remove('highlight');
-        }
+      const locationFilter = document.getElementById('locationFilter');
+      locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location;
+        option.textContent = location;
+        locationFilter.appendChild(option);
       });
     };
 
-    const populateTables = (summaryData, attendanceData) => {
-      const pendingTable = document.getElementById("pendingTable");
-      const attendanceTable = document.getElementById("attendanceTable");
+    const setupSearch = () => {
+      const nameSearch = document.getElementById('nameSearch');
+      const suggestions = document.getElementById('searchSuggestions');
+      const suggestionList = document.getElementById('suggestionList');
 
-      // Clear existing content
-      pendingTable.innerHTML = '';
-      attendanceTable.innerHTML = '';
-
-      summaryData.forEach(row => {
-        const tr = document.createElement("tr");
+      nameSearch.addEventListener('input', (e) => {
+        const value = e.target.value.toLowerCase().trim();
         
-        // Name
-        const nameTd = document.createElement("td");
-        nameTd.textContent = row[1];
-        tr.appendChild(nameTd);
-        
-        // Pending amount
-        const pendingTd = document.createElement("td");
-        const pendingAmount = parseFloat(row[2] || "0");
-        pendingTd.textContent = `${pendingAmount} MVR`;
-        pendingTd.className = pendingAmount > 0 ? 'status-pending' : 'status-paid';
-        tr.appendChild(pendingTd);
-        
-        // Prepay balance
-        const prepayTd = document.createElement("td");
-        const prepayAmount = parseFloat(row[3] || "0");
-        prepayTd.textContent = `${prepayAmount} MVR`;
-        prepayTd.className = prepayAmount > 0 ? 'status-prepay' : '';
-        tr.appendChild(prepayTd);
-        
-        // Sessions count (calculated from attendance data)
-        const sessionsTd = document.createElement("td");
-        const sessionsCount = attendanceData.filter(attRow => attRow[0] === row[1]).length;
-        sessionsTd.textContent = sessionsCount;
-        tr.appendChild(sessionsTd);
-        
-        pendingTable.appendChild(tr);
-      });
-
-      attendanceData.forEach(row => {
-        const tr = document.createElement("tr");
-        row.forEach(cell => {
-          const td = document.createElement("td");
-          td.textContent = cell;
-          tr.appendChild(td);
-        });
-        attendanceTable.appendChild(tr);
-      });
-
-      updateStatistics();
-    };
-
-    const sortTable = (table, columnIndex, direction) => {
-      const tbody = table.querySelector('tbody');
-      const rows = Array.from(tbody.rows);
-      
-      const sortedRows = rows.sort((a, b) => {
-        const aValue = a.cells[columnIndex]?.textContent || '';
-        const bValue = b.cells[columnIndex]?.textContent || '';
-        
-        // Try to parse as number
-        const aNum = parseFloat(aValue);
-        const bNum = parseFloat(bValue);
-        
-        if (!isNaN(aNum) && !isNaN(bNum)) {
-          return direction === 'asc' ? aNum - bNum : bNum - aNum;
-        }
-        
-        // String comparison
-        return direction === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-      });
-      
-      tbody.innerHTML = '';
-      sortedRows.forEach(row => tbody.appendChild(row));
-    };
-
-    const applyFilters = () => {
-      const nameFilter = document.getElementById("nameFilter").value;
-      const monthFilter = document.getElementById("monthFilter").value;
-      const yearFilter2024 = document.getElementById('filter2024Button').checked;
-      const yearFilter2025 = document.getElementById('filter2025Button').checked;
-
-      const pendingTable = document.getElementById("pendingTable");
-      const attendanceTable = document.getElementById("attendanceTable");
-
-      // Filter pending table
-      Array.from(pendingTable.rows).forEach(row => {
-        const name = row.cells[0]?.textContent;
-        row.style.display = (nameFilter === "all" || name === nameFilter) ? "" : "none";
-      });
-
-      // Filter attendance table
-      Array.from(attendanceTable.rows).forEach(row => {
-        const name = row.cells[0]?.textContent;
-        const month = row.cells[2]?.textContent;
-        const date = row.cells[3]?.textContent.trim();
-
-        const yearFilter = (yearFilter2024 && date.endsWith('2024')) || 
-                          (yearFilter2025 && date.endsWith('2025')) || 
-                          (!yearFilter2024 && !yearFilter2025);
-
-        row.style.display = (
-          (nameFilter === "all" || name === nameFilter) &&
-          (monthFilter === "all" || month === monthFilter) &&
-          yearFilter
-        ) ? "" : "none";
-      });
-
-      updateStatistics();
-      updateActiveFilters();
-    };
-
-    const updateActiveFilters = () => {
-      const activeFilters = document.getElementById('activeFilters');
-      const filters = [];
-      
-      const nameFilter = document.getElementById("nameFilter").value;
-      const monthFilter = document.getElementById("monthFilter").value;
-      const yearFilter2024 = document.getElementById('filter2024Button').checked;
-      const yearFilter2025 = document.getElementById('filter2025Button').checked;
-      
-      if (nameFilter !== "all") filters.push(`Name: ${nameFilter}`);
-      if (monthFilter !== "all") filters.push(`Month: ${monthFilter}`);
-      if (yearFilter2024) filters.push(`Year: 2024`);
-      if (yearFilter2025) filters.push(`Year: 2025`);
-      
-      activeFilters.innerHTML = filters.map(filter => 
-        `<div class="filter-tag">${filter} <span class="remove" onclick="removeFilter('${filter}')">×</span></div>`
-      ).join('');
-    };
-
-    const exportToCSV = (tableId, filename) => {
-      const table = document.getElementById(tableId);
-      const rows = Array.from(table.rows);
-      const csvContent = rows.map(row => 
-        Array.from(row.cells).map(cell => `"${cell.textContent}"`).join(',')
-      ).join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    };
-
-    // Event Listeners
-    document.addEventListener('DOMContentLoaded', async () => {
-      summaryData = await fetchData("Summary Sheet");
-      attendanceData = await fetchData("AttendOut");
-
-      if (summaryData.length > 0) summaryData = summaryData.slice(1);
-      if (attendanceData.length > 0) attendanceData = attendanceData.slice(1);
-
-      const names = [...new Set(summaryData.map(row => row[1]))];
-      const months = [...new Set(attendanceData.map(row => row[2]))];
-
-      populateFilters(names, months);
-      populateTables(summaryData, attendanceData);
-
-      // Add event listeners
-      document.getElementById("nameFilter").addEventListener("change", applyFilters);
-      document.getElementById("monthFilter").addEventListener("change", applyFilters);
-      document.getElementById('filter2024Button').addEventListener('change', applyFilters);
-      document.getElementById('filter2025Button').addEventListener('change', applyFilters);
-
-      // Sort functionality
-      document.querySelectorAll('th[data-sort]').forEach(th => {
-        th.addEventListener('click', () => {
-          const column = th.dataset.sort;
-          const table = th.closest('table');
-          const columnIndex = Array.from(th.parentNode.children).indexOf(th);
+        if (value.length > 0) {
+          const matches = allNames.filter(name => 
+            name.toLowerCase().includes(value)
+          ).slice(0, 10);
           
-          if (currentSort.column === column) {
-            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+          if (matches.length > 0) {
+            suggestionList.innerHTML = '';
+            matches.forEach(name => {
+              const button = document.createElement('button');
+              button.className = 'btn btn-secondary';
+              button.textContent = name;
+              button.style.fontSize = '0.9rem';
+              button.onclick = () => selectUser(name);
+              suggestionList.appendChild(button);
+            });
+            suggestions.style.display = 'block';
           } else {
-            currentSort.column = column;
-            currentSort.direction = 'asc';
+            suggestions.style.display = 'none';
           }
-          
-          sortTable(table, columnIndex, currentSort.direction);
-          
-          // Update sort indicators
-          document.querySelectorAll('.sort-indicator').forEach(indicator => {
-            indicator.textContent = '↕';
-          });
-          th.querySelector('.sort-indicator').textContent = currentSort.direction === 'asc' ? '↑' : '↓';
-        });
-      });
-
-      // Filter buttons
-      let isPendingFilterActive = false;
-      document.getElementById("filterPendingButton").addEventListener("click", () => {
-        const pendingTable = document.getElementById("pendingTable");
-        const button = document.getElementById("filterPendingButton");
-
-        if (isPendingFilterActive) {
-          Array.from(pendingTable.rows).forEach(row => row.style.display = "");
-          button.textContent = "Show Pending Payments";
-          button.classList.remove('primary');
         } else {
-          Array.from(pendingTable.rows).forEach(row => {
-            const pendingPayment = parseFloat(row.cells[1]?.textContent || "0");
-            row.style.display = pendingPayment > 0 ? "" : "none";
-          });
-          button.textContent = "Show All Records";
-          button.classList.add('primary');
+          suggestions.style.display = 'none';
         }
-
-        isPendingFilterActive = !isPendingFilterActive;
-        updateStatistics();
       });
 
-      let isPrepayFilterActive = false;
-      document.getElementById("filterPrepayButton").addEventListener("click", () => {
-        const pendingTable = document.getElementById("pendingTable");
-        const button = document.getElementById("filterPrepayButton");
+      document.getElementById('clearSearch').onclick = () => {
+        nameSearch.value = '';
+        suggestions.style.display = 'none';
+        showWelcome();
+      };
 
-        if (isPrepayFilterActive) {
-          Array.from(pendingTable.rows).forEach(row => row.style.display = "");
-          button.textContent = "Show Prepay Records";
-          button.classList.remove('primary');
-        } else {
-          Array.from(pendingTable.rows).forEach(row => {
-            const prepayBalance = parseFloat(row.cells[2]?.textContent || "0");
-            row.style.display = prepayBalance > 0 ? "" : "none";
-          });
-          button.textContent = "Show All Records";
-          button.classList.add('primary');
-        }
+      document.getElementById('showAllData').onclick = () => {
+        showAllData();
+      };
+    };
 
-        isPrepayFilterActive = !isPrepayFilterActive;
-        updateStatistics();
-      });
+    const selectUser = (userName) => {
+      selectedUser = userName;
+      document.getElementById('nameSearch').value = userName;
+      document.getElementById('searchSuggestions').style.display = 'none';
+      showUserDashboard(userName);
+    };
 
-      // Clear all filters
-      document.getElementById("clearFiltersButton").addEventListener("click", () => {
-        document.getElementById("nameFilter").value = "all";
-        document.getElementById("monthFilter").value = "all";
-        document.getElementById("nameSearch").value = "";
-        document.getElementById('filter2024Button').checked = false;
-        document.getElementById('filter2025Button').checked = true;
+    const showWelcome = () => {
+      document.getElementById('welcomeMessage').style.display = 'block';
+      document.getElementById('userDashboard').style.display = 'none';
+      document.getElementById('allDataView').style.display = 'none';
+    };
+
+    const showUserDashboard = (userName) => {
+      document.getElementById('welcomeMessage').style.display = 'none';
+      document.getElementById('userDashboard').style.display = 'block';
+      document.getElementById('allDataView').style.display = 'none';
+      
+      updateUserDashboard(userName);
+    };
+
+    const showAllData = () => {
+      document.getElementById('welcomeMessage').style.display = 'none';
+      document.getElementById('userDashboard').style.display = 'none';
+      document.getElementById('allDataView').style.display = 'block';
+      
+      populateAllPaymentsTable();
+    };
+
+    const updateUserDashboard = (userName) => {
+      document.getElementById('selectedUserName').textContent = userName;
+      
+      // Find user's payment summary
+      const userSummary = summaryData.find(row => row[1] === userName);
+      const userAttendance = attendanceData.filter(row => row[0] === userName);
+      
+      if (userSummary) {
+        const pending = parseFloat(userSummary[2]) || 0;
+        const prepay = parseFloat(userSummary[3]) || 0;
+        const totalPayment = parseFloat(userSummary[4]) || 0; // Column 4 is Total Payment
         
-        // Reset filter buttons
-        if (isPendingFilterActive) {
-          document.getElementById("filterPendingButton").click();
-        }
-        if (isPrepayFilterActive) {
-          document.getElementById("filterPrepayButton").click();
-        }
-        
-        // Reset quick filters
-        document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('[data-period="all"]').classList.add('active');
-        
-        applyFilters();
-      });
-
-      // Quick filter buttons
-      document.querySelectorAll('.quick-filter-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.quick-filter-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          
-          const period = btn.dataset.period;
-          const currentDate = new Date();
-          
-          // This would need backend support for date filtering
-          // For now, just visual feedback
-          console.log(`Filter by period: ${period}`);
-        });
-      });
-
-      // Month navigation
-      document.getElementById('prevMonth').addEventListener('click', () => {
-        // This would need backend support for month navigation
-        console.log('Navigate to previous month');
-      });
-
-      document.getElementById('nextMonth').addEventListener('click', () => {
-        // This would need backend support for month navigation
-        console.log('Navigate to next month');
-      });
-
-      // Export functionality
-      document.getElementById('exportPendingBtn').addEventListener('click', () => {
-        exportToCSV('pendingTable', 'ufa-payment-status.csv');
-      });
-
-      document.getElementById('exportAttendanceBtn').addEventListener('click', () => {
-        exportToCSV('attendanceTable', 'ufa-attendance-records.csv');
-      });
-
-      // Calculate costs button
-      document.getElementById('calculateCostsBtn').addEventListener('click', () => {
-        const totalSessions = document.querySelectorAll('#attendanceTable tr').length;
-        const avgAttendance = 18; // This should be calculated from actual data
-        const memberCost = (700 / avgAttendance).toFixed(1);
-        const nonMemberCost = (parseFloat(memberCost) + 15).toFixed(1);
-        
-        alert(`Session Cost Calculation:\n\nField Cost: 700 MVR\nAverage Attendance: ${avgAttendance} players\n\nMember Cost: ${memberCost} MVR per session\nNon-member Cost: ${nonMemberCost} MVR per session`);
-      });
-
-      // Initial filter to show pending payments
-      document.getElementById("filterPendingButton").click();
-    });
-
-    const removeFilter = (filterText) => {
-      // Parse filter text and remove corresponding filter
-      if (filterText.startsWith('Name:')) {
-        document.getElementById("nameFilter").value = "all";
-      } else if (filterText.startsWith('Month:')) {
-        document.getElementById("monthFilter").value = "all";
-      } else if (filterText.includes('2024')) {
-        document.getElementById('filter2024Button').checked = false;
-      } else if (filterText.includes('2025')) {
-        document.getElementById('filter2025Button').checked = false;
+        document.getElementById('pendingAmount').textContent = formatCurrency(pending);
+        document.getElementById('prepayAmount').textContent = formatCurrency(prepay);
+        document.getElementById('totalPayment').textContent = formatCurrency(totalPayment);
       }
       
-      applyFilters();
+      // Calculate session statistics
+      const totalSessions = userAttendance.length;
+      document.getElementById('totalSessions').textContent = totalSessions;
+      
+      // Calculate average cost per session from attendance data
+      const totalCost = userAttendance.reduce((sum, session) => {
+        const costStr = session[4]; // Cost Per Session column
+        const cost = parseCostFromString(costStr);
+        return sum + cost;
+      }, 0);
+      
+      const avgCost = totalSessions > 0 ? totalCost / totalSessions : 0;
+      document.getElementById('avgCost').textContent = `${avgCost.toFixed(0)} MVR`;
+      
+      // Calculate year-wise sessions
+      const sessions2024 = userAttendance.filter(row => row[3] && row[3].includes('2024')).length;
+      const sessions2025 = userAttendance.filter(row => row[3] && row[3].includes('2025')).length;
+      
+      document.getElementById('sessions2024').textContent = sessions2024;
+      document.getElementById('sessions2025').textContent = sessions2025;
+      
+      // Calculate recent sessions (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const recentSessions = userAttendance.filter(row => {
+        const sessionDate = parseDate(row[3]);
+        return sessionDate && sessionDate >= thirtyDaysAgo;
+      }).length;
+      
+      document.getElementById('recentSessions').textContent = recentSessions;
+      
+      populateUserAttendanceTable(userAttendance);
     };
+
+    const populateUserAttendanceTable = (userAttendance) => {
+      const tbody = document.getElementById('attendanceTable');
+      tbody.innerHTML = '';
+      
+      userAttendance.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        // Date
+        const dateCell = document.createElement('td');
+        dateCell.textContent = row[3] || '';
+        tr.appendChild(dateCell);
+        
+        // Location
+        const locationCell = document.createElement('td');
+        locationCell.textContent = row[1] || '';
+        tr.appendChild(locationCell);
+        
+        // Month
+        const monthCell = document.createElement('td');
+        monthCell.textContent = row[2] || '';
+        tr.appendChild(monthCell);
+        
+        // Cost - Parse from Cost Per Session column
+        const costCell = document.createElement('td');
+        const costStr = row[4] || '0'; // Cost Per Session column
+        const cost = parseCostFromString(costStr);
+        costCell.textContent = formatCurrency(cost);
+        tr.appendChild(costCell);
+        
+        // Membership Status - Get from Membership column
+        const statusCell = document.createElement('td');
+        const membershipStatus = row[6] || 'Member'; // Membership column
+        
+        const badge = document.createElement('span');
+        badge.className = `status-badge ${membershipStatus === 'Non-Member' ? 'status-non-member' : 'status-member'}`;
+        badge.textContent = membershipStatus;
+        statusCell.appendChild(badge);
+        tr.appendChild(statusCell);
+        
+        tbody.appendChild(tr);
+      });
+      
+      applyAttendanceFilters();
+      setupTableSorting();
+    };
+
+    const populateAllPaymentsTable = () => {
+      const tbody = document.getElementById('allPaymentsTable');
+      tbody.innerHTML = '';
+      
+      summaryData.forEach(row => {
+        const tr = document.createElement('tr');
+        
+        // Name
+        const nameCell = document.createElement('td');
+        nameCell.textContent = row[1] || '';
+        tr.appendChild(nameCell);
+        
+        // Pending
+        const pendingCell = document.createElement('td');
+        const pending = parseFloat(row[2]) || 0;
+        pendingCell.textContent = formatCurrency(pending);
+        if (pending > 0) {
+          pendingCell.style.color = '#c62828';
+          pendingCell.style.fontWeight = 'bold';
+        }
+        tr.appendChild(pendingCell);
+        
+        // Prepay
+        const prepayCell = document.createElement('td');
+        const prepay = parseFloat(row[3]) || 0;
+        prepayCell.textContent = formatCurrency(prepay);
+        if (prepay > 0) {
+          prepayCell.style.color = '#2e7d32';
+          prepayCell.style.fontWeight = 'bold';
+        }
+        tr.appendChild(prepayCell);
+        
+        // Total Payment
+        const totalPaymentCell = document.createElement('td');
+        const totalPayment = parseFloat(row[4]) || 0; // Column 4 is Total Payment
+        totalPaymentCell.textContent = formatCurrency(totalPayment);
+        totalPaymentCell.style.fontWeight = 'bold';
+        totalPaymentCell.style.color = totalPayment > 0 ? '#2e7d32' : '#374151';
+        tr.appendChild(totalPaymentCell);
+        
+        tbody.appendChild(tr);
+      });
+      
+      applyPaymentFilters();
+      setupTableSorting();
+    };
+
+    const applyAttendanceFilters = () => {
+      const monthFilter = document.getElementById('monthFilter').value;
+      const yearFilter = document.getElementById('yearFilter').value;
+      const locationFilter = document.getElementById('locationFilter').value;
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+      
+      const rows = document.querySelectorAll('#attendanceTable tr');
+      let visibleCount = 0;
+      
+      rows.forEach(row => {
+        const date = row.cells[0]?.textContent;
+        const location = row.cells[1]?.textContent;
+        const month = row.cells[2]?.textContent;
+        
+        const matchesMonth = monthFilter === 'all' || month === monthFilter;
+        const matchesYear = yearFilter === 'all' || date.includes(yearFilter);
+        const matchesLocation = locationFilter === 'all' || location === locationFilter;
+        const matchesDateRange = isWithinDateRange(date, fromDate, toDate);
+        
+        const isVisible = matchesMonth && matchesYear && matchesLocation && matchesDateRange;
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
+      });
+      
+      document.getElementById('noAttendanceData').style.display = visibleCount === 0 ? 'block' : 'none';
+    };
+
+    const applyPaymentFilters = () => {
+      const statusFilter = document.getElementById('paymentStatusFilter').value;
+      const rows = document.querySelectorAll('#allPaymentsTable tr');
+      
+      rows.forEach(row => {
+        const pendingText = row.cells[1]?.textContent || '0';
+        const prepayText = row.cells[2]?.textContent || '0';
+        const totalPaymentText = row.cells[3]?.textContent || '0';
+        
+        const pending = parseCostFromString(pendingText);
+        const prepay = parseCostFromString(prepayText);
+        const totalPayment = parseCostFromString(totalPaymentText);
+        const netBalance = prepay - pending;
+        
+        let isVisible = true;
+        
+        switch (statusFilter) {
+          case 'pending':
+            isVisible = pending > 0;
+            break;
+          case 'prepaid':
+            isVisible = prepay > 0;
+            break;
+          case 'balanced':
+            isVisible = Math.abs(netBalance) < 0.01; // Essentially zero
+            break;
+          default:
+            isVisible = true;
+        }
+        
+        row.style.display = isVisible ? '' : 'none';
+      });
+    };
+
+    const setupFilterListeners = () => {
+      document.getElementById('monthFilter').addEventListener('change', applyAttendanceFilters);
+      document.getElementById('yearFilter').addEventListener('change', applyAttendanceFilters);
+      document.getElementById('locationFilter').addEventListener('change', applyAttendanceFilters);
+      document.getElementById('fromDate').addEventListener('change', applyAttendanceFilters);
+      document.getElementById('toDate').addEventListener('change', applyAttendanceFilters);
+      document.getElementById('paymentStatusFilter').addEventListener('change', applyPaymentFilters);
+    };
+
+    const initializeApp = async () => {
+      try {
+        // Show loading state
+        document.getElementById('loadingState').style.display = 'block';
+        
+        // Fetch data from the correct sheet names
+        const [summaryRaw, attendanceRaw] = await Promise.all([
+          fetchData("Summary Sheet"),
+          fetchData("PivotAttendance")
+        ]);
+        
+        // Process data
+        summaryData = summaryRaw.slice(1); // Remove header
+        attendanceData = attendanceRaw.slice(1); // Remove header
+        allNames = [...new Set(summaryData.map(row => row[1]))].filter(Boolean).sort();
+        
+        // Hide loading state
+        document.getElementById('loadingState').style.display = 'none';
+        
+        // Show welcome message
+        showWelcome();
+        
+        // Initialize components
+        setupSearch();
+        initializeFilters();
+        setupFilterListeners();
+        
+        console.log('App initialized successfully');
+        console.log(`Loaded ${summaryData.length} payment records and ${attendanceData.length} attendance records`);
+        
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        document.getElementById('loadingState').innerHTML = `
+          <div style="color: #c62828; text-align: center; padding: 40px;">
+            <div style="font-size: 1.2rem; margin-bottom: 10px;">⚠️ Error Loading Data</div>
+            <div>Please check your internet connection and try refreshing the page.</div>
+          </div>
+        `;
+      }
+    };
+
+    // Initialize the app when the page loads
+    document.addEventListener('DOMContentLoaded', initializeApp);
   </script>
 </body>
 </html>
