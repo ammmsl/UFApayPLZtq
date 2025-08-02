@@ -890,14 +890,20 @@
       const totalSessions = userAttendance.length;
       document.getElementById('totalSessions').textContent = totalSessions;
       
-      // Calculate average cost per session from attendance data
-      const totalCost = userAttendance.reduce((sum, session) => {
+      // Calculate average cost per session from attendance data (excluding zero-cost sessions)
+      const sessionsWithCost = userAttendance.filter(session => {
+        const costStr = session[4]; // Cost Per Session column
+        const cost = parseCostFromString(costStr);
+        return cost > 0; // Only include sessions with actual cost
+      });
+      
+      const totalCost = sessionsWithCost.reduce((sum, session) => {
         const costStr = session[4]; // Cost Per Session column
         const cost = parseCostFromString(costStr);
         return sum + cost;
       }, 0);
       
-      const avgCost = totalSessions > 0 ? totalCost / totalSessions : 0;
+      const avgCost = sessionsWithCost.length > 0 ? totalCost / sessionsWithCost.length : 0;
       document.getElementById('avgCost').textContent = `${avgCost.toFixed(0)} MVR`;
       
       // Calculate year-wise sessions
