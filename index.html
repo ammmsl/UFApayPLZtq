@@ -354,6 +354,31 @@
       margin-top: 4px;
     }
 
+    .payment-detail-item {
+      text-align: center;
+      padding: 12px 8px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #f8fafe, #eef7ff);
+      border: 1px solid #e3f2fd;
+    }
+
+    .payment-detail-label {
+      font-size: min(0.75rem, 2.2vw);
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .payment-detail-value {
+      font-size: min(0.9rem, 2.8vw);
+      font-weight: 600;
+      color: #1565c0;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+
     .welcome-message {
       background: linear-gradient(135deg, #e8f4f8, #d4edda);
       border: 1px solid #b8daff;
@@ -439,6 +464,19 @@
       .quick-stats {
         flex-direction: column;
         gap: 15px;
+      }
+
+      .payment-detail-item {
+        padding: 10px 6px;
+      }
+
+      .payment-detail-label {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+      }
+
+      .payment-detail-value {
+        font-size: 0.85rem;
       }
 
       table {
@@ -539,6 +577,28 @@
               <div class="summary-label">Total Payment</div>
             </div>
           </div>
+          
+          <!-- Payment History Section -->
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+            <div style="font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center;">
+              📅 Payment History
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
+              <div class="payment-detail-item">
+                <div class="payment-detail-label">Last Payment Date</div>
+                <div class="payment-detail-value" id="lastPaymentDate">-</div>
+              </div>
+              <div class="payment-detail-item">
+                <div class="payment-detail-label">Last Payment Amount</div>
+                <div class="payment-detail-value" id="lastPaymentAmount">-</div>
+              </div>
+              <div class="payment-detail-item">
+                <div class="payment-detail-label">Last Covered Date</div>
+                <div class="payment-detail-value" id="lastCoveredDate">-</div>
+              </div>
+            </div>
+          </div>
+          
           <div class="quick-stats">
             <div class="quick-stat">
               <div class="quick-stat-value" id="totalSessions">0</div>
@@ -881,9 +941,19 @@
         const prepay = parseFloat(userSummary[3]) || 0;
         const totalPayment = parseFloat(userSummary[4]) || 0; // Column 4 is Total Payment
         
+        // New fields from Summary Sheet
+        const lastPaymentDate = userSummary[7] || ''; // Column 7: Last Payment Date
+        const lastPaymentAmount = userSummary[8] || ''; // Column 8: Last Payment Amount
+        const lastCoveredDate = userSummary[9] || ''; // Column 9: Last Covered Date
+        
         document.getElementById('pendingAmount').textContent = formatCurrency(pending);
         document.getElementById('prepayAmount').textContent = formatCurrency(prepay);
         document.getElementById('totalPayment').textContent = formatCurrency(totalPayment);
+        
+        // Update new payment history fields
+        document.getElementById('lastPaymentDate').textContent = lastPaymentDate || '-';
+        document.getElementById('lastPaymentAmount').textContent = lastPaymentAmount ? formatCurrency(parseCostFromString(lastPaymentAmount)) : '-';
+        document.getElementById('lastCoveredDate').textContent = lastCoveredDate || '-';
       }
       
       // Calculate session statistics
