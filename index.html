@@ -113,6 +113,73 @@
       transform: translateY(-1px);
     }
 
+    /* Modal Styles for QR Code */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      animation: modalSlideIn 0.3s ease;
+    }
+
+    @keyframes modalSlideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #666;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .close-modal:hover { color: #c62828; }
+
+    .qr-image {
+      width: 100%;
+      max-width: 250px;
+      height: auto;
+      margin: 20px 0;
+      border-radius: 10px;
+      border: 2px solid #e9ecef;
+    }
+
+    .pay-btn {
+      margin-top: 10px;
+      background: #c62828; /* Red to signal debt */
+      color: white;
+      width: 100%;
+      padding: 10px;
+    }
+    
+    .pay-btn:hover {
+      background: #b71c1c;
+    }
+
+    /* Existing Styles Continue... */
     .loading {
       text-align: center;
       padding: 40px;
@@ -178,6 +245,10 @@
       padding: 20px;
       border-radius: 12px;
       background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
 
     .summary-value {
@@ -516,6 +587,18 @@
         padding: 6px 4px;
       }
     }
+    
+    tfoot {
+      background: #f8f9fa;
+      border-top: 2px solid #dee2e6;
+      font-weight: bold;
+    }
+
+    tfoot td {
+      padding: 15px 12px;
+      border-bottom: none;
+      color: #495057;
+    }
   </style>
 </head>
 <body>
@@ -523,8 +606,8 @@
     <header>
       <div class="logo">🥏 UFA Central</div>
       <div class="subtitle">Ultimate Frisbee Association Payment Tracker</div>
-      <div style="margin-top: 15px; font-size: 0.9rem; color: #888;">
-        Updated till 1st August 2025
+      <div id="lastUpdated" style="margin-top: 15px; font-size: 0.9rem; color: #888;">
+        Loading update date...
       </div>
     </header>
 
@@ -567,6 +650,7 @@
             <div id="pendingSummary" class="summary-item pending">
               <div class="summary-value" id="pendingAmount">0</div>
               <div class="summary-label">Pending</div>
+              <button id="btnPayNow" class="btn btn-primary pay-btn" style="display: none;">📷 Pay Now</button>
             </div>
             <div id="prepaySummary" class="summary-item prepaid">
               <div class="summary-value" id="prepayAmount">0</div>
@@ -578,7 +662,6 @@
             </div>
           </div>
           
-          <!-- Payment History Section -->
           <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef;">
             <div style="font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center;">
               📅 Payment History
@@ -682,6 +765,7 @@
             <tbody id="attendanceTable"></tbody>
           </table>
         </div>
+        
         <div id="noAttendanceData" class="no-data" style="display: none;">
           No attendance records found for the selected filters.
         </div>
@@ -707,19 +791,50 @@
         </div>
 
         <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th class="sortable" data-column="0">Name</th>
-                <th class="sortable" data-column="1">Pending</th>
-                <th class="sortable" data-column="2">Prepay Balance</th>
-                <th class="sortable" data-column="3">Total Payment</th>
-              </tr>
-            </thead>
-            <tbody id="allPaymentsTable"></tbody>
-          </table>
+            <table>
+              <thead>
+                <tr>
+                  <th class="sortable" data-column="0">Name</th>
+                  <th class="sortable" data-column="1">Pending</th>
+                  <th class="sortable" data-column="2">Prepay Balance</th>
+                  <th class="sortable" data-column="3">Total Payment</th>
+                  <th class="sortable" data-column="4">Last Covered Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="allPaymentsTable"></tbody>
+              <tfoot>
+                <tr>
+                  <td>TOTAL</td>
+                  <td id="totalPendingSum">0 MVR</td>
+                  <td id="totalPrepaySum">0 MVR</td>
+                  <td id="totalPaymentSum">0 MVR</td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="qrModal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3>Scan to Pay</h3>
+      <p style="color: #666; font-size: 0.9rem;">Scan the QR code or copy the account details below.</p>
+      
+      <img src="payment_qr.png" alt="Payment QR Code" class="qr-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div style="display:none; color:#c62828;">QR Image missing (payment_qr.png)</div>
+
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+        <div style="font-size: 0.8rem; text-transform: uppercase; color: #888;">Account Number</div>
+        <div style="font-size: 1.2rem; font-weight: bold; color: #333; margin: 5px 0;">7730000682000</div>
+        <div style="font-size: 0.9rem; color: #666;">MOHD. AMSAL</div>
+      </div>
+      
+      <button class="btn btn-secondary" onclick="document.getElementById('qrModal').style.display='none'" style="margin-top: 20px;">Close</button>
     </div>
   </div>
 
@@ -742,13 +857,27 @@
         const data = await response.json();
         return data.values || [];
       } catch (error) {
-        console.error('Error fetching data:', error);
         return [];
       }
     };
 
+    const fetchSheetLastModified = async () => {
+      try {
+        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetID}?key=${apiKey}&fields=properties.lastUpdateTime`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch sheet metadata');
+        }
+        
+        const data = await response.json();
+        return data.properties?.lastUpdateTime;
+      } catch (error) {
+        return null;
+      }
+    };
+
     const formatCurrency = (amount) => {
-      return amount ? `${Math.abs(parseFloat(amount)).toFixed(0)} MVR` : '0 MVR';
+        return amount ? `${Math.abs(parseFloat(amount)).toFixed(2)} MVR` : '0.00 MVR';
     };
 
     const parseDate = (dateStr) => {
@@ -787,7 +916,8 @@
           const tbody = table.querySelector('tbody');
           const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
           
-          // Toggle sort direction
+          const columnHeader = header.textContent.trim().replace(/[↕↑↓]/g, '').trim();
+          
           if (currentSortColumn === column) {
             currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
           } else {
@@ -795,25 +925,22 @@
             currentSortColumn = column;
           }
           
-          // Update header classes
           document.querySelectorAll('th.sortable').forEach(h => {
             h.classList.remove('sort-asc', 'sort-desc');
           });
           header.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
           
-          // Sort rows
           rows.sort((a, b) => {
             let aVal = a.cells[column]?.textContent?.trim() || '';
             let bVal = b.cells[column]?.textContent?.trim() || '';
             
-            // Handle different data types
-            if (column === 0) { // Date column
-              aVal = parseDate(aVal) || new Date(0);
-              bVal = parseDate(bVal) || new Date(0);
-            } else if (column === 3) { // Cost column - extract numeric value
-              aVal = parseCostFromString(aVal);
-              bVal = parseCostFromString(bVal);
-            } else if (aVal.includes('MVR') || bVal.includes('MVR')) { // Currency columns
+            if (columnHeader === 'Date' || columnHeader === 'Last Covered Date') {
+              if (aVal === '-' || aVal === '') aVal = new Date(0);
+              else aVal = parseDate(aVal) || new Date(0);
+              
+              if (bVal === '-' || bVal === '') bVal = new Date(0);
+              else bVal = parseDate(bVal) || new Date(0);
+            } else if (columnHeader === 'Cost' || aVal.includes('MVR') || bVal.includes('MVR')) {
               aVal = parseCostFromString(aVal);
               bVal = parseCostFromString(bVal);
             }
@@ -823,14 +950,12 @@
             } else if (aVal instanceof Date && bVal instanceof Date) {
               return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
             } else {
-              // String comparison
               aVal = aVal.toString().toLowerCase();
               bVal = bVal.toString().toLowerCase();
               return currentSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
             }
           });
           
-          // Re-append sorted rows
           rows.forEach(row => tbody.appendChild(row));
         });
       });
@@ -892,6 +1017,9 @@
       document.getElementById('clearSearch').onclick = () => {
         nameSearch.value = '';
         suggestions.style.display = 'none';
+        // Clear URL parameter when clearing search
+        const newUrl = window.location.pathname;
+        window.history.pushState({path: newUrl}, '', newUrl);
         showWelcome();
       };
 
@@ -900,11 +1028,31 @@
       };
     };
 
+    // Deep Linking: Update URL when user is selected
     const selectUser = (userName) => {
       selectedUser = userName;
       document.getElementById('nameSearch').value = userName;
       document.getElementById('searchSuggestions').style.display = 'none';
+      
+      // Update URL with query parameter without reloading
+      const newUrl = `${window.location.pathname}?user=${encodeURIComponent(userName)}`;
+      window.history.pushState({path: newUrl}, '', newUrl);
+      
       showUserDashboard(userName);
+    };
+
+    // Deep Linking: Check URL on load
+    const checkUrlParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const user = urlParams.get('user');
+      if (user) {
+        // Decode URI component to handle spaces or special characters
+        const decodedUser = decodeURIComponent(user);
+        // Verify user exists in data
+        if (allNames.includes(decodedUser)) {
+           selectUser(decodedUser);
+        }
+      }
     };
 
     const showWelcome = () => {
@@ -932,43 +1080,47 @@
     const updateUserDashboard = (userName) => {
       document.getElementById('selectedUserName').textContent = userName;
       
-      // Find user's payment summary
       const userSummary = summaryData.find(row => row[1] === userName);
       const userAttendance = attendanceData.filter(row => row[0] === userName);
       
       if (userSummary) {
         const pending = parseFloat(userSummary[2]) || 0;
         const prepay = parseFloat(userSummary[3]) || 0;
-        const totalPayment = parseFloat(userSummary[4]) || 0; // Column 4 is Total Payment
+        const totalPayment = parseFloat(userSummary[4]) || 0;
         
-        // New fields from Summary Sheet
-        const lastPaymentDate = userSummary[7] || ''; // Column 7: Last Payment Date
-        const lastPaymentAmount = userSummary[8] || ''; // Column 8: Last Payment Amount
-        const lastCoveredDate = userSummary[9] || ''; // Column 9: Last Covered Date
+        const lastPaymentDate = userSummary[7] || '';
+        const lastPaymentAmount = userSummary[8] || '';
+        const lastCoveredDate = userSummary[9] || '';
         
         document.getElementById('pendingAmount').textContent = formatCurrency(pending);
         document.getElementById('prepayAmount').textContent = formatCurrency(prepay);
         document.getElementById('totalPayment').textContent = formatCurrency(totalPayment);
         
-        // Update new payment history fields
         document.getElementById('lastPaymentDate').textContent = lastPaymentDate || '-';
         document.getElementById('lastPaymentAmount').textContent = lastPaymentAmount ? formatCurrency(parseCostFromString(lastPaymentAmount)) : '-';
         document.getElementById('lastCoveredDate').textContent = lastCoveredDate || '-';
+
+        // NEW: Show/Hide Pay Now button based on pending amount
+        const payBtn = document.getElementById('btnPayNow');
+        if (pending > 0) {
+            payBtn.style.display = 'block';
+            payBtn.onclick = () => document.getElementById('qrModal').style.display = 'flex';
+        } else {
+            payBtn.style.display = 'none';
+        }
       }
       
-      // Calculate session statistics
       const totalSessions = userAttendance.length;
       document.getElementById('totalSessions').textContent = totalSessions;
       
-      // Calculate average cost per session from attendance data (excluding zero-cost sessions)
       const sessionsWithCost = userAttendance.filter(session => {
-        const costStr = session[4]; // Cost Per Session column
+        const costStr = session[4];
         const cost = parseCostFromString(costStr);
-        return cost > 0; // Only include sessions with actual cost
+        return cost > 0;
       });
       
       const totalCost = sessionsWithCost.reduce((sum, session) => {
-        const costStr = session[4]; // Cost Per Session column
+        const costStr = session[4];
         const cost = parseCostFromString(costStr);
         return sum + cost;
       }, 0);
@@ -976,14 +1128,12 @@
       const avgCost = sessionsWithCost.length > 0 ? totalCost / sessionsWithCost.length : 0;
       document.getElementById('avgCost').textContent = `${avgCost.toFixed(0)} MVR`;
       
-      // Calculate year-wise sessions
       const sessions2024 = userAttendance.filter(row => row[3] && row[3].includes('2024')).length;
       const sessions2025 = userAttendance.filter(row => row[3] && row[3].includes('2025')).length;
       
       document.getElementById('sessions2024').textContent = sessions2024;
       document.getElementById('sessions2025').textContent = sessions2025;
       
-      // Calculate recent sessions (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
@@ -1004,31 +1154,26 @@
       userAttendance.forEach(row => {
         const tr = document.createElement('tr');
         
-        // Date
         const dateCell = document.createElement('td');
         dateCell.textContent = row[3] || '';
         tr.appendChild(dateCell);
         
-        // Location
         const locationCell = document.createElement('td');
         locationCell.textContent = row[1] || '';
         tr.appendChild(locationCell);
         
-        // Month
         const monthCell = document.createElement('td');
         monthCell.textContent = row[2] || '';
         tr.appendChild(monthCell);
         
-        // Cost - Parse from Cost Per Session column
         const costCell = document.createElement('td');
-        const costStr = row[4] || '0'; // Cost Per Session column
+        const costStr = row[4] || '0';
         const cost = parseCostFromString(costStr);
         costCell.textContent = formatCurrency(cost);
         tr.appendChild(costCell);
         
-        // Membership Status - Get from Membership column
         const statusCell = document.createElement('td');
-        const membershipStatus = row[6] || 'Member'; // Membership column
+        const membershipStatus = row[6] || 'Member';
         
         const badge = document.createElement('span');
         badge.className = `status-badge ${membershipStatus === 'Non-Member' ? 'status-non-member' : 'status-member'}`;
@@ -1047,17 +1192,40 @@
       const tbody = document.getElementById('allPaymentsTable');
       tbody.innerHTML = '';
       
+      let totalPending = 0;
+      let totalPrepay = 0;
+      let totalPaymentSum = 0;
+      
       summaryData.forEach(row => {
         const tr = document.createElement('tr');
         
-        // Name
+        const name = row[1] || '';
+        const pending = parseFloat(row[2]) || 0;
+        const prepay = parseFloat(row[3]) || 0;
+        const totalPayment = parseFloat(row[4]) || 0;
+        const lastCoveredDate = row[9] || '';
+        
         const nameCell = document.createElement('td');
-        nameCell.textContent = row[1] || '';
+        const nameLink = document.createElement('a');
+        nameLink.textContent = name;
+        nameLink.href = '#';
+        nameLink.style.color = '#488daa';
+        nameLink.style.textDecoration = 'none';
+        nameLink.style.fontWeight = '600';
+        nameLink.style.cursor = 'pointer';
+        nameLink.style.transition = 'color 0.2s ease';
+        nameLink.onmouseover = () => nameLink.style.color = '#357a96';
+        nameLink.onmouseout = () => nameLink.style.color = '#488daa';
+        nameLink.onclick = (e) => {
+          e.preventDefault();
+          selectUser(name);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        nameCell.appendChild(nameLink);
         tr.appendChild(nameCell);
         
-        // Pending
         const pendingCell = document.createElement('td');
-        const pending = parseFloat(row[2]) || 0;
+        totalPending += pending;
         pendingCell.textContent = formatCurrency(pending);
         if (pending > 0) {
           pendingCell.style.color = '#c62828';
@@ -1065,9 +1233,8 @@
         }
         tr.appendChild(pendingCell);
         
-        // Prepay
         const prepayCell = document.createElement('td');
-        const prepay = parseFloat(row[3]) || 0;
+        totalPrepay += prepay;
         prepayCell.textContent = formatCurrency(prepay);
         if (prepay > 0) {
           prepayCell.style.color = '#2e7d32';
@@ -1075,21 +1242,103 @@
         }
         tr.appendChild(prepayCell);
         
-        // Total Payment
         const totalPaymentCell = document.createElement('td');
-        const totalPayment = parseFloat(row[4]) || 0; // Column 4 is Total Payment
+        totalPaymentSum += totalPayment;
         totalPaymentCell.textContent = formatCurrency(totalPayment);
         totalPaymentCell.style.fontWeight = 'bold';
         totalPaymentCell.style.color = totalPayment > 0 ? '#2e7d32' : '#374151';
         tr.appendChild(totalPaymentCell);
         
+        const lastCoveredCell = document.createElement('td');
+        lastCoveredCell.textContent = lastCoveredDate || '-';
+        lastCoveredCell.style.fontWeight = '500';
+        if (pending > 0 && lastCoveredDate) {
+          lastCoveredCell.style.color = '#c62828';
+        }
+        tr.appendChild(lastCoveredCell);
+        
+        const actionCell = document.createElement('td');
+        if (pending > 0) {
+          const copyBtn = document.createElement('button');
+          copyBtn.className = 'btn btn-primary';
+          copyBtn.textContent = '📋 Copy';
+          copyBtn.style.padding = '8px 15px';
+          copyBtn.style.fontSize = '12px';
+          copyBtn.onclick = () => copyPaymentMessage(name, pending, lastCoveredDate, copyBtn);
+          actionCell.appendChild(copyBtn);
+        }
+        tr.appendChild(actionCell);
+        
         tbody.appendChild(tr);
       });
       
+      document.getElementById('totalPendingSum').textContent = formatCurrency(totalPending);
+      document.getElementById('totalPrepaySum').textContent = formatCurrency(totalPrepay);
+      document.getElementById('totalPaymentSum').textContent = formatCurrency(totalPaymentSum);
+      
       applyPaymentFilters();
       setupTableSorting();
-    };
+    };    
+    
+    // Updated Copy Message with Deep Link
+    const copyPaymentMessage = async (name, amount, lastCoveredDate, buttonElement) => {
+      // Generate the deep link
+      const baseUrl = window.location.href.split('?')[0];
+      const deepLink = `${baseUrl}?user=${encodeURIComponent(name)}`;
+      
+      const message = `Hey ${name}, you have unpaid Frisbee field booking fees of MVR ${amount.toFixed(2)} from sessions after ${lastCoveredDate || 'your last session'}.
 
+You can view your details here: ${deepLink}
+
+Please pay to the following account:
+Account No.: 7730000682000
+Account Name: MOHD. AMSAL`;
+
+      try {
+        await navigator.clipboard.writeText(message);
+        const originalText = buttonElement.textContent;
+        const originalBg = buttonElement.style.background;
+        buttonElement.textContent = '✓ Copied!';
+        buttonElement.style.background = '#2e7d32';
+        buttonElement.disabled = true;
+        
+        setTimeout(() => {
+          buttonElement.textContent = originalText;
+          buttonElement.style.background = originalBg;
+          buttonElement.disabled = false;
+        }, 2000);
+      } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = message;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          const originalText = buttonElement.textContent;
+          const originalBg = buttonElement.style.background;
+          buttonElement.textContent = '✓ Copied!';
+          buttonElement.style.background = '#2e7d32';
+          buttonElement.disabled = true;
+          
+          setTimeout(() => {
+            buttonElement.textContent = originalText;
+            buttonElement.style.background = originalBg;
+            buttonElement.disabled = false;
+          }, 2000);
+        } catch (err) {
+          buttonElement.textContent = '✗ Failed';
+          buttonElement.style.background = '#c62828';
+          setTimeout(() => {
+            buttonElement.textContent = '📋 Copy';
+            buttonElement.style.background = '';
+          }, 2000);
+        }
+        document.body.removeChild(textArea);
+      }
+    };
+    
     const applyAttendanceFilters = () => {
       const monthFilter = document.getElementById('monthFilter').value;
       const yearFilter = document.getElementById('yearFilter').value;
@@ -1142,7 +1391,7 @@
             isVisible = prepay > 0;
             break;
           case 'balanced':
-            isVisible = Math.abs(netBalance) < 0.01; // Essentially zero
+            isVisible = Math.abs(netBalance) < 0.01;
             break;
           default:
             isVisible = true;
@@ -1161,35 +1410,64 @@
       document.getElementById('paymentStatusFilter').addEventListener('change', applyPaymentFilters);
     };
 
+    // Modal Events
+    document.querySelector('.close-modal').addEventListener('click', () => {
+        document.getElementById('qrModal').style.display = 'none';
+    });
+    
+    // Close modal if clicking outside content
+    window.onclick = (event) => {
+        const modal = document.getElementById('qrModal');
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+
     const initializeApp = async () => {
       try {
-        // Show loading state
         document.getElementById('loadingState').style.display = 'block';
         
-        // Fetch data from the correct sheet names
-        const [summaryRaw, attendanceRaw] = await Promise.all([
+        const [summaryRaw, attendanceRaw, lastModified] = await Promise.all([
           fetchData("Summary Sheet"),
-          fetchData("PivotAttendance")
+          fetchData("PivotAttendance"),
+          fetchSheetLastModified()
         ]);
         
-        // Process data
-        summaryData = summaryRaw.slice(1); // Remove header
-        attendanceData = attendanceRaw.slice(1); // Remove header
+        summaryData = summaryRaw.slice(1);
+        attendanceData = attendanceRaw.slice(1);
         allNames = [...new Set(summaryData.map(row => row[1]))].filter(Boolean).sort();
         
-        // Hide loading state
+        const dateElement = document.getElementById('lastUpdated');
+        if (lastModified) {
+          const lastModifiedDate = new Date(lastModified);
+          const formattedDate = lastModifiedDate.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+          dateElement.textContent = `Updated ${formattedDate}`;
+        } else {
+          const currentDate = new Date().toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          });
+          dateElement.textContent = `Updated ${currentDate}`;
+        }
+        
         document.getElementById('loadingState').style.display = 'none';
         
-        // Show welcome message
-        showWelcome();
-        
-        // Initialize components
         setupSearch();
         initializeFilters();
         setupFilterListeners();
         
-        console.log('App initialized successfully');
-        console.log(`Loaded ${summaryData.length} payment records and ${attendanceData.length} attendance records`);
+        // NEW: Check if URL has a user parameter
+        checkUrlParams();
+        
+        // If no user selected via URL, show welcome
+        if (!selectedUser) {
+            showWelcome();
+        }
         
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -1202,7 +1480,6 @@
       }
     };
 
-    // Initialize the app when the page loads
     document.addEventListener('DOMContentLoaded', initializeApp);
   </script>
 </body>
