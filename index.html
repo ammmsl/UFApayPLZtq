@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UFA Central - Payment Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -15,6 +16,7 @@
       padding: 0;
       background: linear-gradient(145deg, #dfc9ff 0%, #92c9ff 100%);
       min-height: 100vh;
+      color: #333;
     }
 
     .container {
@@ -27,47 +29,47 @@
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 30px;
+      padding: 25px;
       text-align: center;
-      margin-bottom: 30px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      margin-bottom: 25px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
     }
 
     .logo {
       color: #488daa;
-      font-size: 2.5rem;
-      font-weight: bold;
-      margin-bottom: 10px;
+      font-size: 2.2rem;
+      font-weight: 800;
+      margin-bottom: 5px;
+      letter-spacing: -1px;
     }
 
     .subtitle {
       color: #666;
-      font-size: 1.1rem;
+      font-size: 1rem;
+      font-weight: 500;
     }
 
-    .search-section {
+    /* Navigation / Search Section */
+    .controls-section {
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 30px;
-      margin-bottom: 30px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
     }
 
     .search-container {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       align-items: center;
       flex-wrap: wrap;
-      margin-bottom: 20px;
     }
 
     .search-input {
       flex: 1;
-      min-width: 250px;
-      padding: 15px 20px;
+      min-width: 200px;
+      padding: 12px 20px;
       border: 2px solid #e1e5e9;
       border-radius: 12px;
       font-size: 16px;
@@ -77,1410 +79,642 @@
     .search-input:focus {
       outline: none;
       border-color: #488daa;
-      box-shadow: 0 0 0 3px rgba(72, 141, 170, 0.1);
+      box-shadow: 0 0 0 4px rgba(72, 141, 170, 0.1);
     }
 
     .btn {
-      padding: 15px 25px;
+      padding: 12px 20px;
       border: none;
       border-radius: 12px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #488daa, #357a96);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(72, 141, 170, 0.3);
-    }
-
-    .btn-secondary {
-      background: #f8f9fa;
-      color: #495057;
-      border: 2px solid #e9ecef;
-    }
-
-    .btn-secondary:hover {
-      background: #e9ecef;
-      transform: translateY(-1px);
-    }
-
-    /* Modal Styles for QR Code */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1000;
-      justify-content: center;
+      transition: all 0.2s ease;
+      display: inline-flex;
       align-items: center;
-      backdrop-filter: blur(5px);
+      gap: 8px;
     }
 
-    .modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 20px;
-      max-width: 90%;
-      width: 400px;
-      text-align: center;
-      position: relative;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-      animation: modalSlideIn 0.3s ease;
-    }
+    .btn-primary { background: #488daa; color: white; }
+    .btn-primary:hover { background: #357a96; transform: translateY(-2px); }
 
-    @keyframes modalSlideIn {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .close-modal {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      font-size: 28px;
-      font-weight: bold;
-      color: #666;
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-
-    .close-modal:hover { color: #c62828; }
-
-    .qr-image {
-      width: 100%;
-      max-width: 250px;
-      height: auto;
-      margin: 20px 0;
-      border-radius: 10px;
-      border: 2px solid #e9ecef;
-    }
-
-    .pay-btn {
-      margin-top: 10px;
-      background: #c62828; /* Red to signal debt */
-      color: white;
-      width: 100%;
-      padding: 10px;
-    }
+    .btn-secondary { background: #f1f3f5; color: #495057; }
+    .btn-secondary:hover { background: #e9ecef; }
     
-    .pay-btn:hover {
-      background: #b71c1c;
-    }
+    .btn-accent { background: #ffc107; color: #333; }
+    .btn-accent:hover { background: #ffca2c; transform: translateY(-2px); }
 
-    /* Existing Styles Continue... */
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: #666;
-      font-size: 1.1rem;
-    }
-
-    .spinner {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #488daa;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-right: 10px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .dashboard {
+    /* Dashboard Layout */
+    .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 25px;
     }
 
     .card {
       background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      transition: transform 0.3s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      height: 100%;
     }
 
     .card-title {
-      font-size: 1.3rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      font-weight: 700;
       margin-bottom: 20px;
-      color: #333;
+      color: #2c3e50;
       display: flex;
       align-items: center;
       gap: 10px;
+      border-bottom: 2px solid #f1f3f5;
+      padding-bottom: 10px;
     }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 20px;
-    }
-
-    .summary-item {
-      text-align: center;
+    /* Frictionless Payment Card (Embedded) */
+    .payment-action-card {
+      background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+      border: 2px solid #ffc9c9;
+      border-radius: 16px;
       padding: 20px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      margin-bottom: 25px;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .summary-value {
-      font-size: min(2rem, 5vw);
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .summary-label {
-      font-size: min(0.9rem, 3vw);
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .pending {
-      background: linear-gradient(135deg, #ffebee, #ffcdd2);
-      color: #c62828;
-    }
-
-    .prepaid {
-      background: linear-gradient(135deg, #e8f5e8, #c8e6c9);
-      color: #2e7d32;
-    }
-
-    .neutral {
-      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-      color: #374151;
-    }
-
-    .table-container {
-      max-height: 400px;
-      overflow-y: auto;
-      overflow-x: auto;
-      border-radius: 12px;
-      border: 1px solid #e1e5e9;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
-    }
-
-    th {
-      background: #f8f9fa;
-      padding: 15px 12px;
-      text-align: left;
-      font-weight: 600;
-      color: #495057;
-      border-bottom: 2px solid #e9ecef;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    th:hover {
-      background: #e9ecef;
-    }
-
-    th.sortable::after {
-      content: ' ↕';
-      opacity: 0.5;
-    }
-
-    th.sort-asc::after {
-      content: ' ↑';
-      opacity: 1;
-    }
-
-    th.sort-desc::after {
-      content: ' ↓';
-      opacity: 1;
-    }
-
-    td {
-      padding: 12px;
-      border-bottom: 1px solid #e9ecef;
-      vertical-align: middle;
-      font-size: min(14px, 3.5vw);
-    }
-
-    tr:hover {
-      background: #f8f9fa;
-    }
-
-    .status-badge {
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: min(0.8rem, 2.5vw);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .status-member {
-      background: #e3f2fd;
-      color: #1565c0;
-    }
-
-    .status-non-member {
-      background: #fff3e0;
-      color: #ef6c00;
-    }
-
-    .filters {
-      display: flex;
-      gap: 15px;
       flex-wrap: wrap;
+      gap: 20px;
+      animation: slideDown 0.5s ease;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .payment-info {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .payment-alert-title {
+      color: #c62828;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      display: flex;
       align-items: center;
+      gap: 8px;
+    }
+
+    .bank-details-box {
+      background: rgba(255,255,255,0.6);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 10px;
+      border: 1px solid rgba(198, 40, 40, 0.1);
+    }
+
+    .account-number {
+      font-family: 'Courier New', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #333;
+      letter-spacing: 1px;
+      margin: 5px 0;
+    }
+
+    .qr-embed {
+      width: 140px;
+      height: 140px;
+      border-radius: 10px;
+      border: 4px solid white;
+      box-shadow: 0 4px 15px rgba(198, 40, 40, 0.2);
+    }
+
+    /* Stats Grid */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
       margin-bottom: 20px;
-      padding: 20px;
+    }
+
+    .stat-box {
       background: #f8f9fa;
       border-radius: 12px;
-    }
-
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      min-width: 120px;
-    }
-
-    .filter-label {
-      font-size: min(0.85rem, 3vw);
-      font-weight: 600;
-      color: #495057;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    select, input[type="date"] {
-      padding: 8px 12px;
-      border: 1px solid #ced4da;
-      border-radius: 6px;
-      font-size: min(14px, 3.5vw);
-    }
-
-    .no-data {
+      padding: 15px;
       text-align: center;
-      padding: 40px;
-      color: #6c757d;
-      font-style: italic;
-    }
-
-    .highlight {
-      background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-      border-left: 4px solid #ffc107;
-    }
-
-    .quick-stats {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid #e9ecef;
-    }
-
-    .quick-stat {
-      text-align: center;
-    }
-
-    .quick-stat-value {
-      font-size: min(1.4rem, 4vw);
-      font-weight: bold;
-      color: #488daa;
-    }
-
-    .quick-stat-label {
-      font-size: min(0.8rem, 2.5vw);
-      color: #666;
-      margin-top: 4px;
-    }
-
-    .payment-detail-item {
-      text-align: center;
-      padding: 12px 8px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #f8fafe, #eef7ff);
-      border: 1px solid #e3f2fd;
-    }
-
-    .payment-detail-label {
-      font-size: min(0.75rem, 2.2vw);
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    .payment-detail-value {
-      font-size: min(0.9rem, 2.8vw);
-      font-weight: 600;
-      color: #1565c0;
-      word-break: break-word;
-      line-height: 1.2;
-    }
-
-    .welcome-message {
-      background: linear-gradient(135deg, #e8f4f8, #d4edda);
-      border: 1px solid #b8daff;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .welcome-title {
-      font-size: min(1.4rem, 4.5vw);
-      font-weight: 600;
-      color: #155724;
-      margin-bottom: 8px;
-    }
-
-    .welcome-subtitle {
-      color: #155724;
-      opacity: 0.8;
-      font-size: min(1rem, 3.5vw);
-    }
-
-    /* Mobile-specific optimizations */
-    @media (max-width: 768px) {
-      .container {
-        padding: 10px;
-      }
-      
-      .search-container {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      
-      .search-input {
-        min-width: unset;
-      }
-      
-      .dashboard {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-      
-      .filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-      }
-      
-      .filter-group {
-        min-width: unset;
-      }
-      
-      .summary-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 15px;
-      }
-
-      .card {
-        padding: 20px;
-      }
-
-      .logo {
-        font-size: 2rem;
-      }
-
-      .subtitle {
-        font-size: 1rem;
-      }
-
-      header {
-        padding: 20px;
-      }
-
-      .search-section {
-        padding: 20px;
-      }
-
-      .btn {
-        padding: 12px 20px;
-        font-size: 12px;
-      }
-
-      .quick-stats {
-        flex-direction: column;
-        gap: 15px;
-      }
-
-      .payment-detail-item {
-        padding: 10px 6px;
-      }
-
-      .payment-detail-label {
-        font-size: 0.7rem;
-        margin-bottom: 4px;
-      }
-
-      .payment-detail-value {
-        font-size: 0.85rem;
-      }
-
-      table {
-        min-width: 500px;
-        font-size: 12px;
-      }
-
-      th, td {
-        padding: 8px 6px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .container {
-        padding: 5px;
-      }
-
-      .summary-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      .logo {
-        font-size: 1.8rem;
-      }
-
-      .card-title {
-        font-size: 1.1rem;
-      }
-
-      table {
-        min-width: 450px;
-        font-size: 11px;
-      }
-
-      th, td {
-        padding: 6px 4px;
-      }
     }
     
-    tfoot {
-      background: #f8f9fa;
-      border-top: 2px solid #dee2e6;
-      font-weight: bold;
+    .stat-box.pending { background: #ffebee; color: #c62828; }
+    .stat-box.prepaid { background: #e8f5e8; color: #2e7d32; }
+
+    .stat-value { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
+    .stat-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
     }
 
-    tfoot td {
-      padding: 15px 12px;
-      border-bottom: none;
-      color: #495057;
+    table { width: 100%; border-collapse: collapse; min-width: 500px; }
+    th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 0.9rem; color: #666; }
+    td { padding: 12px; border-bottom: 1px solid #f1f3f5; font-size: 0.95rem; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Leaderboard Styles */
+    .leaderboard-row {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      border-bottom: 1px solid #f1f3f5;
+      transition: background 0.2s;
+    }
+    .leaderboard-row:hover { background: #f8f9fa; }
+    
+    .rank-circle {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #e9ecef;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 15px;
+      color: #666;
+    }
+    
+    .rank-1 { background: #ffd700; color: #b45309; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+    .rank-2 { background: #e0e0e0; color: #555; }
+    .rank-3 { background: #cd7f32; color: #fff; }
+    
+    .lb-name { flex: 1; font-weight: 600; font-size: 1.05rem; }
+    .lb-stat { font-weight: 700; color: #488daa; font-size: 1.1rem; }
+    .lb-sub { font-size: 0.8rem; color: #999; margin-left: 5px; font-weight: 400; }
+
+    /* Mobile Tweaks */
+    @media (max-width: 768px) {
+      .payment-action-card { flex-direction: column-reverse; align-items: center; text-align: center; }
+      .payment-info { width: 100%; }
+      .bank-details-box { text-align: center; }
+      .dashboard-grid { grid-template-columns: 1fr; }
+      .logo { font-size: 1.8rem; }
+      .account-number { font-size: 1.2rem; }
     }
   </style>
 </head>
 <body>
+
   <div class="container">
     <header>
       <div class="logo">🥏 UFA Central</div>
-      <div class="subtitle">Ultimate Frisbee Association Payment Tracker</div>
-      <div id="lastUpdated" style="margin-top: 15px; font-size: 0.9rem; color: #888;">
-        Loading update date...
-      </div>
+      <div class="subtitle">Ultimate Frisbee Association Tracker</div>
     </header>
 
-    <div class="search-section">
-      <h2 style="margin-top: 0; color: #333; font-size: 1.5rem;">Find Your Payment Status</h2>
+    <div class="controls-section">
       <div class="search-container">
-        <input type="text" id="nameSearch" class="search-input" placeholder="Start typing your name...">
+        <input type="text" id="nameSearch" class="search-input" placeholder="Enter your name...">
         <button id="clearSearch" class="btn btn-secondary">Clear</button>
-        <button id="showAllData" class="btn btn-secondary">View All Data</button>
+        <div style="flex:1"></div> <button id="btnLeaderboard" class="btn btn-accent">🏆 Leaderboard</button>
+        <button id="btnAllData" class="btn btn-secondary">📋 All Data</button>
       </div>
-      
-      <div id="searchSuggestions" style="display: none; margin-top: 10px;">
-        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select your name:</div>
-        <div id="suggestionList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
-      </div>
+      <div id="searchSuggestions" style="display: none; margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
     </div>
 
-    <div id="loadingState" class="loading">
-      <div class="spinner"></div>
-      Loading payment data...
+    <div id="loadingState" style="text-align: center; padding: 40px; color: #666;">
+      Loading data...
     </div>
 
-    <div id="welcomeMessage" class="welcome-message" style="display: none;">
-      <div class="welcome-title">Welcome to UFA Payment Tracker!</div>
-      <div class="welcome-subtitle">Search for your name above to view your personal payment status and attendance history.</div>
+    <div id="welcomeView" style="display: none; text-align: center; padding: 40px; background: white; border-radius: 20px;">
+      <h2 style="color: #488daa;">Welcome! 👋</h2>
+      <p style="color: #666; max-width: 500px; margin: 0 auto;">
+        Type your name above to see your payment status, attendance stats, and history. 
+        <br><br>
+        Or check out the <strong>Leaderboard</strong> to see who's dominating the field this year!
+      </p>
     </div>
 
     <div id="userDashboard" style="display: none;">
-      <div id="personalWelcome" class="welcome-message">
-        <div class="welcome-title">Welcome back, <span id="selectedUserName"></span>!</div>
-        <div class="welcome-subtitle">Here's your complete payment and attendance summary</div>
+      
+      <div id="paymentAlert" class="payment-action-card" style="display: none;">
+        <div class="payment-info">
+          <div class="payment-alert-title">
+            <span>⚠️ Outstanding Balance</span>
+          </div>
+          <div style="font-size: 0.95rem; color: #555; margin-bottom: 10px;">
+            You have <strong id="alertAmount" style="color:#c62828">0 MVR</strong> pending. Please settle immediately.
+          </div>
+          
+          <div class="bank-details-box">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: #888;">Transfer to BML</div>
+            <div class="account-number">7730000682000</div>
+            <div style="font-size: 0.85rem; color: #666;">MOHD. AMSAL</div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: center; align-items: center;">
+             <img src="payment_qr.png" alt="Scan to Pay" class="qr-embed" onerror="this.style.display='none'">
+        </div>
       </div>
 
-      <div class="dashboard">
-        <div class="card">
-          <div class="card-title">
-            💰 Payment Summary
-          </div>
-          <div class="summary-grid">
-            <div id="pendingSummary" class="summary-item pending">
-              <div class="summary-value" id="pendingAmount">0</div>
-              <div class="summary-label">Pending</div>
-              <button id="btnPayNow" class="btn btn-primary pay-btn" style="display: none;">📷 Pay Now</button>
-            </div>
-            <div id="prepaySummary" class="summary-item prepaid">
-              <div class="summary-value" id="prepayAmount">0</div>
-              <div class="summary-label">Prepaid</div>
-            </div>
-            <div class="summary-item neutral">
-              <div class="summary-value" id="totalPayment">0</div>
-              <div class="summary-label">Total Payment</div>
-            </div>
-          </div>
+      <div class="dashboard-grid">
+        <div style="display: flex; flex-direction: column; gap: 25px;">
           
-          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef;">
-            <div style="font-size: 1.1rem; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center;">
-              📅 Payment History
+          <div class="card">
+            <div class="card-title">💰 Balance Summary</div>
+            <div class="stats-row">
+              <div class="stat-box pending">
+                <div class="stat-value" id="dispPending">0</div>
+                <div class="stat-label">Pending</div>
+              </div>
+              <div class="stat-box prepaid">
+                <div class="stat-value" id="dispPrepaid">0</div>
+                <div class="stat-label">Prepaid</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="dispTotal">0</div>
+                <div class="stat-label">Total Paid</div>
+              </div>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px;">
-              <div class="payment-detail-item">
-                <div class="payment-detail-label">Last Payment Date</div>
-                <div class="payment-detail-value" id="lastPaymentDate">-</div>
-              </div>
-              <div class="payment-detail-item">
-                <div class="payment-detail-label">Last Payment Amount</div>
-                <div class="payment-detail-value" id="lastPaymentAmount">-</div>
-              </div>
-              <div class="payment-detail-item">
-                <div class="payment-detail-label">Last Covered Date</div>
-                <div class="payment-detail-value" id="lastCoveredDate">-</div>
-              </div>
+            
+            <div style="margin-top: 15px; font-size: 0.9rem; color: #666; text-align: center;">
+              Last covered date: <strong id="dispLastCovered">-</strong>
             </div>
           </div>
-          
-          <div class="quick-stats">
-            <div class="quick-stat">
-              <div class="quick-stat-value" id="totalSessions">0</div>
-              <div class="quick-stat-label">Total Sessions</div>
-            </div>
-            <div class="quick-stat">
-              <div class="quick-stat-value" id="avgCost">0</div>
-              <div class="quick-stat-label">Avg Cost/Session</div>
-            </div>
+
+          <div class="card">
+             <div class="card-title">📊 Attendance Trend</div>
+             <canvas id="attendanceChart" height="200"></canvas>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-title">
-            📊 Activity Overview
+          <div class="card-title">📅 Recent Activity</div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Location</th>
+                  <th>Cost</th>
+                </tr>
+              </thead>
+              <tbody id="userHistoryTable"></tbody>
+            </table>
           </div>
-          <div class="summary-grid">
-            <div class="summary-item neutral">
-              <div class="summary-value" id="sessions2024">0</div>
-              <div class="summary-label">2024 Sessions</div>
-            </div>
-            <div class="summary-item neutral">
-              <div class="summary-value" id="sessions2025">0</div>
-              <div class="summary-label">2025 Sessions</div>
-            </div>
-            <div class="summary-item neutral">
-              <div class="summary-value" id="recentSessions">0</div>
-              <div class="summary-label">Last 30 Days</div>
-            </div>
+          <div style="margin-top: 15px; text-align: center;">
+            <button class="btn btn-secondary" onclick="showAllData()">View Full History</button>
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="card">
-        <div class="card-title">
-          📅 Your Attendance History
-        </div>
-        
-        <div class="filters">
-          <div class="filter-group">
-            <label class="filter-label">Month</label>
-            <select id="monthFilter">
-              <option value="all">All Months</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">Year</label>
-            <select id="yearFilter">
-              <option value="all">All Years</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">Location</label>
-            <select id="locationFilter">
-              <option value="all">All Locations</option>
-            </select>
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">From Date</label>
-            <input type="date" id="fromDate">
-          </div>
-          <div class="filter-group">
-            <label class="filter-label">To Date</label>
-            <input type="date" id="toDate">
-          </div>
+    <div id="leaderboardView" style="display: none;">
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-title">🔥 Top Attendees (2024-25)</div>
+          <div id="attendanceLeaderboardList"></div>
         </div>
 
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th class="sortable" data-column="0">Date</th>
-                <th class="sortable" data-column="1">Location</th>
-                <th class="sortable" data-column="2">Month</th>
-                <th class="sortable" data-column="3">Cost</th>
-                <th class="sortable" data-column="4">Membership</th>
-              </tr>
-            </thead>
-            <tbody id="attendanceTable"></tbody>
-          </table>
-        </div>
-        
-        <div id="noAttendanceData" class="no-data" style="display: none;">
-          No attendance records found for the selected filters.
+        <div class="card">
+          <div class="card-title">🐋 Top Credit Holders</div>
+          <div style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
+            Members with the highest prepaid balance.
+          </div>
+          <div id="creditLeaderboardList"></div>
         </div>
       </div>
     </div>
 
     <div id="allDataView" style="display: none;">
       <div class="card">
-        <div class="card-title">
-          📋 All Payment Records
-        </div>
-        
-        <div class="filters">
-          <div class="filter-group">
-            <label class="filter-label">Filter By</label>
-            <select id="paymentStatusFilter">
-              <option value="all">All Records</option>
-              <option value="pending">Pending Payments</option>
-              <option value="prepaid">Prepaid Balance</option>
-              <option value="balanced">Balanced (0)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th class="sortable" data-column="0">Name</th>
-                  <th class="sortable" data-column="1">Pending</th>
-                  <th class="sortable" data-column="2">Prepay Balance</th>
-                  <th class="sortable" data-column="3">Total Payment</th>
-                  <th class="sortable" data-column="4">Last Covered Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="allPaymentsTable"></tbody>
-              <tfoot>
-                <tr>
-                  <td>TOTAL</td>
-                  <td id="totalPendingSum">0 MVR</td>
-                  <td id="totalPrepaySum">0 MVR</td>
-                  <td id="totalPaymentSum">0 MVR</td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+        <div class="card-title">📋 Complete Database</div>
+        <div class="table-wrapper" style="max-height: 70vh; overflow-y: auto;">
+          <table>
+            <thead style="position: sticky; top: 0; z-index: 10;">
+              <tr>
+                <th>Name</th>
+                <th>Pending</th>
+                <th>Prepaid</th>
+                <th>Last Covered</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="allDataTable"></tbody>
+          </table>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="qrModal" class="modal-overlay">
-    <div class="modal-content">
-      <span class="close-modal">&times;</span>
-      <h3>Scan to Pay</h3>
-      <p style="color: #666; font-size: 0.9rem;">Scan the QR code or copy the account details below.</p>
-      
-      <img src="payment_qr.png" alt="Payment QR Code" class="qr-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-      <div style="display:none; color:#c62828;">QR Image missing (payment_qr.png)</div>
-
-      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
-        <div style="font-size: 0.8rem; text-transform: uppercase; color: #888;">Account Number</div>
-        <div style="font-size: 1.2rem; font-weight: bold; color: #333; margin: 5px 0;">7730000682000</div>
-        <div style="font-size: 0.9rem; color: #666;">MOHD. AMSAL</div>
-      </div>
-      
-      <button class="btn btn-secondary" onclick="document.getElementById('qrModal').style.display='none'" style="margin-top: 20px;">Close</button>
-    </div>
   </div>
 
   <script>
+    // --- CONFIGURATION ---
     const apiKey = "AIzaSyB4FKQrbrtGpBztkZVriYkEGsXlnLXHAN0";
     const sheetID = "1kI6E4J0pL4lUa2NH-FYEd2rWUE7Uzsz-CnGOg68ERtc";
-    const baseURL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values`;
-
+    
+    // --- STATE ---
     let summaryData = [];
     let attendanceData = [];
     let allNames = [];
-    let selectedUser = null;
-    let currentSortColumn = null;
-    let currentSortDirection = 'asc';
+    let myChart = null; // Chart instance
 
-    const fetchData = async (sheetName) => {
-      try {
-        const response = await fetch(`${baseURL}/${sheetName}?key=${apiKey}`);
-        if (!response.ok) throw new Error('Failed to fetch data');
-        const data = await response.json();
-        return data.values || [];
-      } catch (error) {
-        return [];
-      }
-    };
+    // --- INITIALIZATION ---
+    document.addEventListener('DOMContentLoaded', () => {
+      initApp();
+      setupEventListeners();
+    });
 
-    const fetchSheetLastModified = async () => {
+    async function initApp() {
       try {
-        const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetID}?key=${apiKey}&fields=properties.lastUpdateTime`);
+        const baseURL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values`;
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch sheet metadata');
+        // Parallel fetch for speed
+        const [summaryRes, attendanceRes] = await Promise.all([
+          fetch(`${baseURL}/Summary Sheet?key=${apiKey}`),
+          fetch(`${baseURL}/PivotAttendance?key=${apiKey}`)
+        ]);
+
+        const summaryJson = await summaryRes.json();
+        const attendanceJson = await attendanceRes.json();
+
+        // Process Data (Skip headers)
+        summaryData = (summaryJson.values || []).slice(1);
+        attendanceData = (attendanceJson.values || []).slice(1);
+        
+        // Extract Unique Names
+        allNames = [...new Set(summaryData.map(row => row[1]))].filter(Boolean).sort();
+        
+        document.getElementById('loadingState').style.display = 'none';
+        
+        // Check URL for Deep Link
+        const urlParams = new URLSearchParams(window.location.search);
+        const linkedUser = urlParams.get('user');
+        
+        if (linkedUser && allNames.includes(linkedUser)) {
+           loadUser(linkedUser);
+        } else {
+           showView('welcome');
         }
-        
-        const data = await response.json();
-        return data.properties?.lastUpdateTime;
-      } catch (error) {
-        return null;
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('loadingState').innerText = "Failed to load data. Please refresh.";
       }
-    };
+    }
 
-    const formatCurrency = (amount) => {
-        return amount ? `${Math.abs(parseFloat(amount)).toFixed(2)} MVR` : '0.00 MVR';
-    };
-
-    const parseDate = (dateStr) => {
-      if (!dateStr) return null;
-      const parts = dateStr.trim().split('/');
-      if (parts.length === 3) {
-        const day = parts[0];
-        const month = parts[1];
-        const year = parts[2];
-        return new Date(year, month - 1, day);
-      }
-      return null;
-    };
-
-    const isWithinDateRange = (dateStr, fromDate, toDate) => {
-      const date = parseDate(dateStr);
-      if (!date) return true;
-      
-      if (fromDate && date < new Date(fromDate)) return false;
-      if (toDate && date > new Date(toDate)) return false;
-      return true;
-    };
-
-    const parseCostFromString = (costStr) => {
-      if (!costStr) return 0;
-      // Remove 'Rf' prefix and any other non-numeric characters except decimal point
-      const numericValue = costStr.toString().replace(/[^\d.-]/g, '');
-      return parseFloat(numericValue) || 0;
-    };
-
-    const setupTableSorting = () => {
-      document.querySelectorAll('th.sortable').forEach(header => {
-        header.addEventListener('click', () => {
-          const column = parseInt(header.dataset.column);
-          const table = header.closest('table');
-          const tbody = table.querySelector('tbody');
-          const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.style.display !== 'none');
-          
-          const columnHeader = header.textContent.trim().replace(/[↕↑↓]/g, '').trim();
-          
-          if (currentSortColumn === column) {
-            currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-          } else {
-            currentSortDirection = 'asc';
-            currentSortColumn = column;
-          }
-          
-          document.querySelectorAll('th.sortable').forEach(h => {
-            h.classList.remove('sort-asc', 'sort-desc');
-          });
-          header.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
-          
-          rows.sort((a, b) => {
-            let aVal = a.cells[column]?.textContent?.trim() || '';
-            let bVal = b.cells[column]?.textContent?.trim() || '';
-            
-            if (columnHeader === 'Date' || columnHeader === 'Last Covered Date') {
-              if (aVal === '-' || aVal === '') aVal = new Date(0);
-              else aVal = parseDate(aVal) || new Date(0);
-              
-              if (bVal === '-' || bVal === '') bVal = new Date(0);
-              else bVal = parseDate(bVal) || new Date(0);
-            } else if (columnHeader === 'Cost' || aVal.includes('MVR') || bVal.includes('MVR')) {
-              aVal = parseCostFromString(aVal);
-              bVal = parseCostFromString(bVal);
-            }
-            
-            if (typeof aVal === 'number' && typeof bVal === 'number') {
-              return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-            } else if (aVal instanceof Date && bVal instanceof Date) {
-              return currentSortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-            } else {
-              aVal = aVal.toString().toLowerCase();
-              bVal = bVal.toString().toLowerCase();
-              return currentSortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-            }
-          });
-          
-          rows.forEach(row => tbody.appendChild(row));
-        });
-      });
-    };
-
-    const initializeFilters = () => {
-      const months = [...new Set(attendanceData.map(row => row[2]))].filter(Boolean);
-      const locations = [...new Set(attendanceData.map(row => row[1]))].filter(Boolean);
-      
-      const monthFilter = document.getElementById('monthFilter');
-      months.forEach(month => {
-        const option = document.createElement('option');
-        option.value = month;
-        option.textContent = month;
-        monthFilter.appendChild(option);
-      });
-
-      const locationFilter = document.getElementById('locationFilter');
-      locations.forEach(location => {
-        const option = document.createElement('option');
-        option.value = location;
-        option.textContent = location;
-        locationFilter.appendChild(option);
-      });
-    };
-
-    const setupSearch = () => {
-      const nameSearch = document.getElementById('nameSearch');
+    function setupEventListeners() {
+      // Search
+      const searchInput = document.getElementById('nameSearch');
       const suggestions = document.getElementById('searchSuggestions');
-      const suggestionList = document.getElementById('suggestionList');
-
-      nameSearch.addEventListener('input', (e) => {
-        const value = e.target.value.toLowerCase().trim();
+      
+      searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        suggestions.innerHTML = '';
         
-        if (value.length > 0) {
-          const matches = allNames.filter(name => 
-            name.toLowerCase().includes(value)
-          ).slice(0, 10);
-          
-          if (matches.length > 0) {
-            suggestionList.innerHTML = '';
-            matches.forEach(name => {
-              const button = document.createElement('button');
-              button.className = 'btn btn-secondary';
-              button.textContent = name;
-              button.style.fontSize = '0.9rem';
-              button.onclick = () => selectUser(name);
-              suggestionList.appendChild(button);
-            });
-            suggestions.style.display = 'block';
-          } else {
-            suggestions.style.display = 'none';
-          }
+        if (val.length < 1) {
+          suggestions.style.display = 'none';
+          return;
+        }
+
+        const matches = allNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
+        
+        if (matches.length > 0) {
+          suggestions.style.display = 'flex';
+          matches.forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-secondary';
+            btn.style.padding = '8px 15px';
+            btn.textContent = name;
+            btn.onclick = () => loadUser(name);
+            suggestions.appendChild(btn);
+          });
         } else {
           suggestions.style.display = 'none';
         }
       });
 
+      // Buttons
       document.getElementById('clearSearch').onclick = () => {
-        nameSearch.value = '';
+        searchInput.value = '';
         suggestions.style.display = 'none';
-        // Clear URL parameter when clearing search
-        const newUrl = window.location.pathname;
-        window.history.pushState({path: newUrl}, '', newUrl);
-        showWelcome();
+        window.history.pushState({}, '', window.location.pathname);
+        showView('welcome');
       };
 
-      document.getElementById('showAllData').onclick = () => {
-        showAllData();
-      };
-    };
-
-    // Deep Linking: Update URL when user is selected
-    const selectUser = (userName) => {
-      selectedUser = userName;
-      document.getElementById('nameSearch').value = userName;
-      document.getElementById('searchSuggestions').style.display = 'none';
-      
-      // Update URL with query parameter without reloading
-      const newUrl = `${window.location.pathname}?user=${encodeURIComponent(userName)}`;
-      window.history.pushState({path: newUrl}, '', newUrl);
-      
-      showUserDashboard(userName);
-    };
-
-    // Deep Linking: Check URL on load
-    const checkUrlParams = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const user = urlParams.get('user');
-      if (user) {
-        // Decode URI component to handle spaces or special characters
-        const decodedUser = decodeURIComponent(user);
-        // Verify user exists in data
-        if (allNames.includes(decodedUser)) {
-           selectUser(decodedUser);
-        }
-      }
-    };
-
-    const showWelcome = () => {
-      document.getElementById('welcomeMessage').style.display = 'block';
-      document.getElementById('userDashboard').style.display = 'none';
-      document.getElementById('allDataView').style.display = 'none';
-    };
-
-    const showUserDashboard = (userName) => {
-      document.getElementById('welcomeMessage').style.display = 'none';
-      document.getElementById('userDashboard').style.display = 'block';
-      document.getElementById('allDataView').style.display = 'none';
-      
-      updateUserDashboard(userName);
-    };
-
-    const showAllData = () => {
-      document.getElementById('welcomeMessage').style.display = 'none';
-      document.getElementById('userDashboard').style.display = 'none';
-      document.getElementById('allDataView').style.display = 'block';
-      
-      populateAllPaymentsTable();
-    };
-
-    const updateUserDashboard = (userName) => {
-      document.getElementById('selectedUserName').textContent = userName;
-      
-      const userSummary = summaryData.find(row => row[1] === userName);
-      const userAttendance = attendanceData.filter(row => row[0] === userName);
-      
-      if (userSummary) {
-        const pending = parseFloat(userSummary[2]) || 0;
-        const prepay = parseFloat(userSummary[3]) || 0;
-        const totalPayment = parseFloat(userSummary[4]) || 0;
-        
-        const lastPaymentDate = userSummary[7] || '';
-        const lastPaymentAmount = userSummary[8] || '';
-        const lastCoveredDate = userSummary[9] || '';
-        
-        document.getElementById('pendingAmount').textContent = formatCurrency(pending);
-        document.getElementById('prepayAmount').textContent = formatCurrency(prepay);
-        document.getElementById('totalPayment').textContent = formatCurrency(totalPayment);
-        
-        document.getElementById('lastPaymentDate').textContent = lastPaymentDate || '-';
-        document.getElementById('lastPaymentAmount').textContent = lastPaymentAmount ? formatCurrency(parseCostFromString(lastPaymentAmount)) : '-';
-        document.getElementById('lastCoveredDate').textContent = lastCoveredDate || '-';
-
-        // NEW: Show/Hide Pay Now button based on pending amount
-        const payBtn = document.getElementById('btnPayNow');
-        if (pending > 0) {
-            payBtn.style.display = 'block';
-            payBtn.onclick = () => document.getElementById('qrModal').style.display = 'flex';
-        } else {
-            payBtn.style.display = 'none';
-        }
-      }
-      
-      const totalSessions = userAttendance.length;
-      document.getElementById('totalSessions').textContent = totalSessions;
-      
-      const sessionsWithCost = userAttendance.filter(session => {
-        const costStr = session[4];
-        const cost = parseCostFromString(costStr);
-        return cost > 0;
-      });
-      
-      const totalCost = sessionsWithCost.reduce((sum, session) => {
-        const costStr = session[4];
-        const cost = parseCostFromString(costStr);
-        return sum + cost;
-      }, 0);
-      
-      const avgCost = sessionsWithCost.length > 0 ? totalCost / sessionsWithCost.length : 0;
-      document.getElementById('avgCost').textContent = `${avgCost.toFixed(0)} MVR`;
-      
-      const sessions2024 = userAttendance.filter(row => row[3] && row[3].includes('2024')).length;
-      const sessions2025 = userAttendance.filter(row => row[3] && row[3].includes('2025')).length;
-      
-      document.getElementById('sessions2024').textContent = sessions2024;
-      document.getElementById('sessions2025').textContent = sessions2025;
-      
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentSessions = userAttendance.filter(row => {
-        const sessionDate = parseDate(row[3]);
-        return sessionDate && sessionDate >= thirtyDaysAgo;
-      }).length;
-      
-      document.getElementById('recentSessions').textContent = recentSessions;
-      
-      populateUserAttendanceTable(userAttendance);
-    };
-
-    const populateUserAttendanceTable = (userAttendance) => {
-      const tbody = document.getElementById('attendanceTable');
-      tbody.innerHTML = '';
-      
-      userAttendance.forEach(row => {
-        const tr = document.createElement('tr');
-        
-        const dateCell = document.createElement('td');
-        dateCell.textContent = row[3] || '';
-        tr.appendChild(dateCell);
-        
-        const locationCell = document.createElement('td');
-        locationCell.textContent = row[1] || '';
-        tr.appendChild(locationCell);
-        
-        const monthCell = document.createElement('td');
-        monthCell.textContent = row[2] || '';
-        tr.appendChild(monthCell);
-        
-        const costCell = document.createElement('td');
-        const costStr = row[4] || '0';
-        const cost = parseCostFromString(costStr);
-        costCell.textContent = formatCurrency(cost);
-        tr.appendChild(costCell);
-        
-        const statusCell = document.createElement('td');
-        const membershipStatus = row[6] || 'Member';
-        
-        const badge = document.createElement('span');
-        badge.className = `status-badge ${membershipStatus === 'Non-Member' ? 'status-non-member' : 'status-member'}`;
-        badge.textContent = membershipStatus;
-        statusCell.appendChild(badge);
-        tr.appendChild(statusCell);
-        
-        tbody.appendChild(tr);
-      });
-      
-      applyAttendanceFilters();
-      setupTableSorting();
-    };
-
-    const populateAllPaymentsTable = () => {
-      const tbody = document.getElementById('allPaymentsTable');
-      tbody.innerHTML = '';
-      
-      let totalPending = 0;
-      let totalPrepay = 0;
-      let totalPaymentSum = 0;
-      
-      summaryData.forEach(row => {
-        const tr = document.createElement('tr');
-        
-        const name = row[1] || '';
-        const pending = parseFloat(row[2]) || 0;
-        const prepay = parseFloat(row[3]) || 0;
-        const totalPayment = parseFloat(row[4]) || 0;
-        const lastCoveredDate = row[9] || '';
-        
-        const nameCell = document.createElement('td');
-        const nameLink = document.createElement('a');
-        nameLink.textContent = name;
-        nameLink.href = '#';
-        nameLink.style.color = '#488daa';
-        nameLink.style.textDecoration = 'none';
-        nameLink.style.fontWeight = '600';
-        nameLink.style.cursor = 'pointer';
-        nameLink.style.transition = 'color 0.2s ease';
-        nameLink.onmouseover = () => nameLink.style.color = '#357a96';
-        nameLink.onmouseout = () => nameLink.style.color = '#488daa';
-        nameLink.onclick = (e) => {
-          e.preventDefault();
-          selectUser(name);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
-        nameCell.appendChild(nameLink);
-        tr.appendChild(nameCell);
-        
-        const pendingCell = document.createElement('td');
-        totalPending += pending;
-        pendingCell.textContent = formatCurrency(pending);
-        if (pending > 0) {
-          pendingCell.style.color = '#c62828';
-          pendingCell.style.fontWeight = 'bold';
-        }
-        tr.appendChild(pendingCell);
-        
-        const prepayCell = document.createElement('td');
-        totalPrepay += prepay;
-        prepayCell.textContent = formatCurrency(prepay);
-        if (prepay > 0) {
-          prepayCell.style.color = '#2e7d32';
-          prepayCell.style.fontWeight = 'bold';
-        }
-        tr.appendChild(prepayCell);
-        
-        const totalPaymentCell = document.createElement('td');
-        totalPaymentSum += totalPayment;
-        totalPaymentCell.textContent = formatCurrency(totalPayment);
-        totalPaymentCell.style.fontWeight = 'bold';
-        totalPaymentCell.style.color = totalPayment > 0 ? '#2e7d32' : '#374151';
-        tr.appendChild(totalPaymentCell);
-        
-        const lastCoveredCell = document.createElement('td');
-        lastCoveredCell.textContent = lastCoveredDate || '-';
-        lastCoveredCell.style.fontWeight = '500';
-        if (pending > 0 && lastCoveredDate) {
-          lastCoveredCell.style.color = '#c62828';
-        }
-        tr.appendChild(lastCoveredCell);
-        
-        const actionCell = document.createElement('td');
-        if (pending > 0) {
-          const copyBtn = document.createElement('button');
-          copyBtn.className = 'btn btn-primary';
-          copyBtn.textContent = '📋 Copy';
-          copyBtn.style.padding = '8px 15px';
-          copyBtn.style.fontSize = '12px';
-          copyBtn.onclick = () => copyPaymentMessage(name, pending, lastCoveredDate, copyBtn);
-          actionCell.appendChild(copyBtn);
-        }
-        tr.appendChild(actionCell);
-        
-        tbody.appendChild(tr);
-      });
-      
-      document.getElementById('totalPendingSum').textContent = formatCurrency(totalPending);
-      document.getElementById('totalPrepaySum').textContent = formatCurrency(totalPrepay);
-      document.getElementById('totalPaymentSum').textContent = formatCurrency(totalPaymentSum);
-      
-      applyPaymentFilters();
-      setupTableSorting();
-    };    
-    
-    // Updated Copy Message with Deep Link
-    const copyPaymentMessage = async (name, amount, lastCoveredDate, buttonElement) => {
-      // Generate the deep link
-      const baseUrl = window.location.href.split('?')[0];
-      const deepLink = `${baseUrl}?user=${encodeURIComponent(name)}`;
-      
-      const message = `Hey ${name}, you have unpaid Frisbee field booking fees of MVR ${amount.toFixed(2)} from sessions after ${lastCoveredDate || 'your last session'}.
-
-You can view your details here: ${deepLink}
-
-Please pay to the following account:
-Account No.: 7730000682000
-Account Name: MOHD. AMSAL`;
-
-      try {
-        await navigator.clipboard.writeText(message);
-        const originalText = buttonElement.textContent;
-        const originalBg = buttonElement.style.background;
-        buttonElement.textContent = '✓ Copied!';
-        buttonElement.style.background = '#2e7d32';
-        buttonElement.disabled = true;
-        
-        setTimeout(() => {
-          buttonElement.textContent = originalText;
-          buttonElement.style.background = originalBg;
-          buttonElement.disabled = false;
-        }, 2000);
-      } catch (err) {
-        const textArea = document.createElement('textarea');
-        textArea.value = message;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.select();
-        try {
-          document.execCommand('copy');
-          const originalText = buttonElement.textContent;
-          const originalBg = buttonElement.style.background;
-          buttonElement.textContent = '✓ Copied!';
-          buttonElement.style.background = '#2e7d32';
-          buttonElement.disabled = true;
-          
-          setTimeout(() => {
-            buttonElement.textContent = originalText;
-            buttonElement.style.background = originalBg;
-            buttonElement.disabled = false;
-          }, 2000);
-        } catch (err) {
-          buttonElement.textContent = '✗ Failed';
-          buttonElement.style.background = '#c62828';
-          setTimeout(() => {
-            buttonElement.textContent = '📋 Copy';
-            buttonElement.style.background = '';
-          }, 2000);
-        }
-        document.body.removeChild(textArea);
-      }
-    };
-    
-    const applyAttendanceFilters = () => {
-      const monthFilter = document.getElementById('monthFilter').value;
-      const yearFilter = document.getElementById('yearFilter').value;
-      const locationFilter = document.getElementById('locationFilter').value;
-      const fromDate = document.getElementById('fromDate').value;
-      const toDate = document.getElementById('toDate').value;
-      
-      const rows = document.querySelectorAll('#attendanceTable tr');
-      let visibleCount = 0;
-      
-      rows.forEach(row => {
-        const date = row.cells[0]?.textContent;
-        const location = row.cells[1]?.textContent;
-        const month = row.cells[2]?.textContent;
-        
-        const matchesMonth = monthFilter === 'all' || month === monthFilter;
-        const matchesYear = yearFilter === 'all' || date.includes(yearFilter);
-        const matchesLocation = locationFilter === 'all' || location === locationFilter;
-        const matchesDateRange = isWithinDateRange(date, fromDate, toDate);
-        
-        const isVisible = matchesMonth && matchesYear && matchesLocation && matchesDateRange;
-        row.style.display = isVisible ? '' : 'none';
-        if (isVisible) visibleCount++;
-      });
-      
-      document.getElementById('noAttendanceData').style.display = visibleCount === 0 ? 'block' : 'none';
-    };
-
-    const applyPaymentFilters = () => {
-      const statusFilter = document.getElementById('paymentStatusFilter').value;
-      const rows = document.querySelectorAll('#allPaymentsTable tr');
-      
-      rows.forEach(row => {
-        const pendingText = row.cells[1]?.textContent || '0';
-        const prepayText = row.cells[2]?.textContent || '0';
-        const totalPaymentText = row.cells[3]?.textContent || '0';
-        
-        const pending = parseCostFromString(pendingText);
-        const prepay = parseCostFromString(prepayText);
-        const totalPayment = parseCostFromString(totalPaymentText);
-        const netBalance = prepay - pending;
-        
-        let isVisible = true;
-        
-        switch (statusFilter) {
-          case 'pending':
-            isVisible = pending > 0;
-            break;
-          case 'prepaid':
-            isVisible = prepay > 0;
-            break;
-          case 'balanced':
-            isVisible = Math.abs(netBalance) < 0.01;
-            break;
-          default:
-            isVisible = true;
-        }
-        
-        row.style.display = isVisible ? '' : 'none';
-      });
-    };
-
-    const setupFilterListeners = () => {
-      document.getElementById('monthFilter').addEventListener('change', applyAttendanceFilters);
-      document.getElementById('yearFilter').addEventListener('change', applyAttendanceFilters);
-      document.getElementById('locationFilter').addEventListener('change', applyAttendanceFilters);
-      document.getElementById('fromDate').addEventListener('change', applyAttendanceFilters);
-      document.getElementById('toDate').addEventListener('change', applyAttendanceFilters);
-      document.getElementById('paymentStatusFilter').addEventListener('change', applyPaymentFilters);
-    };
-
-    // Modal Events
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        document.getElementById('qrModal').style.display = 'none';
-    });
-    
-    // Close modal if clicking outside content
-    window.onclick = (event) => {
-        const modal = document.getElementById('qrModal');
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
+      document.getElementById('btnLeaderboard').onclick = loadLeaderboard;
+      document.getElementById('btnAllData').onclick = loadAllData;
     }
 
-    const initializeApp = async () => {
-      try {
-        document.getElementById('loadingState').style.display = 'block';
+    // --- CORE LOGIC ---
+
+    function showView(viewName) {
+      document.getElementById('welcomeView').style.display = 'none';
+      document.getElementById('userDashboard').style.display = 'none';
+      document.getElementById('leaderboardView').style.display = 'none';
+      document.getElementById('allDataView').style.display = 'none';
+
+      if (viewName === 'welcome') document.getElementById('welcomeView').style.display = 'block';
+      if (viewName === 'dashboard') document.getElementById('userDashboard').style.display = 'block';
+      if (viewName === 'leaderboard') document.getElementById('leaderboardView').style.display = 'block';
+      if (viewName === 'alldata') document.getElementById('allDataView').style.display = 'block';
+    }
+
+    function loadUser(name) {
+      // 1. Set State
+      document.getElementById('nameSearch').value = name;
+      document.getElementById('searchSuggestions').style.display = 'none';
+      
+      // 2. Update URL (Deep Link)
+      const newUrl = `${window.location.pathname}?user=${encodeURIComponent(name)}`;
+      window.history.pushState({path: newUrl}, '', newUrl);
+
+      // 3. Get Data
+      const userSummary = summaryData.find(row => row[1] === name);
+      const userAttendance = attendanceData.filter(row => row[0] === name);
+
+      if (!userSummary) return;
+
+      // 4. Update Stats
+      const pending = parseFloat(userSummary[2]) || 0;
+      const prepaid = parseFloat(userSummary[3]) || 0;
+      
+      document.getElementById('dispPending').innerText = formatCurrency(pending);
+      document.getElementById('dispPrepaid').innerText = formatCurrency(prepaid);
+      document.getElementById('dispTotal').innerText = formatCurrency(userSummary[4]);
+      document.getElementById('dispLastCovered').innerText = userSummary[9] || '-';
+
+      // 5. THE FRICTIONLESS PAYMENT LOGIC
+      const alertBox = document.getElementById('paymentAlert');
+      if (pending > 0) {
+        alertBox.style.display = 'flex';
+        document.getElementById('alertAmount').innerText = formatCurrency(pending);
+      } else {
+        alertBox.style.display = 'none';
+      }
+
+      // 6. Populate Recent History (Last 10)
+      const tbody = document.getElementById('userHistoryTable');
+      tbody.innerHTML = '';
+      userAttendance.slice(-10).reverse().forEach(row => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${row[3]}</td>
+            <td>${row[1]}</td>
+            <td style="font-weight:bold">${row[4]}</td>
+          </tr>
+        `;
+      });
+
+      // 7. Render Chart
+      renderChart(userAttendance);
+
+      showView('dashboard');
+    }
+
+    function renderChart(data) {
+      const ctx = document.getElementById('attendanceChart').getContext('2d');
+      
+      // Process Data: Group by Month-Year
+      const counts = {};
+      data.forEach(row => {
+        // Assuming row[2] is Month (e.g., "December") and row[3] is Date
+        // We need to parse date to sort correctly, but for simplicity let's use the provided Month column
+        // Better approach: Take last 6 months
+        const dateStr = row[3]; // "2 Dec 2025"
+        if(!dateStr) return;
         
-        const [summaryRaw, attendanceRaw, lastModified] = await Promise.all([
-          fetchData("Summary Sheet"),
-          fetchData("PivotAttendance"),
-          fetchSheetLastModified()
-        ]);
-        
-        summaryData = summaryRaw.slice(1);
-        attendanceData = attendanceRaw.slice(1);
-        allNames = [...new Set(summaryData.map(row => row[1]))].filter(Boolean).sort();
-        
-        const dateElement = document.getElementById('lastUpdated');
-        if (lastModified) {
-          const lastModifiedDate = new Date(lastModified);
-          const formattedDate = lastModifiedDate.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-          dateElement.textContent = `Updated ${formattedDate}`;
-        } else {
-          const currentDate = new Date().toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-          });
-          dateElement.textContent = `Updated ${currentDate}`;
+        const parts = dateStr.split('/'); // Assuming format dd/mm/yyyy based on previous code
+        // Fallback if format is different
+        let key = row[2]; // Use Month column
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      // Sort months (Primitive sort for now, keys are Month Names)
+      // Ideally we map month names to numbers.
+      const labels = Object.keys(counts); 
+      const values = Object.values(counts);
+
+      if (myChart) myChart.destroy();
+
+      myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Sessions',
+            data: values,
+            backgroundColor: 'rgba(72, 141, 170, 0.6)',
+            borderColor: 'rgba(72, 141, 170, 1)',
+            borderWidth: 1,
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
         }
-        
-        document.getElementById('loadingState').style.display = 'none';
-        
-        setupSearch();
-        initializeFilters();
-        setupFilterListeners();
-        
-        // NEW: Check if URL has a user parameter
-        checkUrlParams();
-        
-        // If no user selected via URL, show welcome
-        if (!selectedUser) {
-            showWelcome();
-        }
-        
-      } catch (error) {
-        console.error('Error initializing app:', error);
-        document.getElementById('loadingState').innerHTML = `
-          <div style="color: #c62828; text-align: center; padding: 40px;">
-            <div style="font-size: 1.2rem; margin-bottom: 10px;">⚠️ Error Loading Data</div>
-            <div>Please check your internet connection and try refreshing the page.</div>
+      });
+    }
+
+    function loadLeaderboard() {
+      // 1. Calculate Attendance
+      const counts = {};
+      attendanceData.forEach(row => {
+        const name = row[0];
+        if(name) counts[name] = (counts[name] || 0) + 1;
+      });
+
+      // Sort Top 15
+      const sortedAttendance = Object.entries(counts)
+        .sort((a,b) => b[1] - a[1])
+        .slice(0, 15);
+
+      // 2. Render Attendance List
+      const attList = document.getElementById('attendanceLeaderboardList');
+      attList.innerHTML = '';
+      
+      sortedAttendance.forEach((item, index) => {
+        const rank = index + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+        attList.innerHTML += `
+          <div class="leaderboard-row">
+            <div class="rank-circle ${rankClass}">${rank}</div>
+            <div class="lb-name">${item[0]}</div>
+            <div class="lb-stat">${item[1]} <span class="lb-sub">sessions</span></div>
           </div>
         `;
-      }
-    };
+      });
 
-    document.addEventListener('DOMContentLoaded', initializeApp);
+      // 3. Calculate "Whales" (Credit Holders)
+      const sortedCredit = [...summaryData]
+        .map(row => ({ name: row[1], credit: parseFloat(row[3]) || 0 }))
+        .sort((a,b) => b.credit - a.credit)
+        .filter(x => x.credit > 0)
+        .slice(0, 10);
+
+      const credList = document.getElementById('creditLeaderboardList');
+      credList.innerHTML = '';
+      
+      sortedCredit.forEach((item, index) => {
+        credList.innerHTML += `
+          <div class="leaderboard-row">
+            <div class="rank-circle" style="font-size:0.8rem; background:#e8f5e8; color:#2e7d32">#${index+1}</div>
+            <div class="lb-name">${item.name}</div>
+            <div class="lb-stat" style="color:#2e7d32">${item.credit.toFixed(0)} <span class="lb-sub">MVR</span></div>
+          </div>
+        `;
+      });
+
+      showView('leaderboard');
+    }
+
+    function loadAllData() {
+      const tbody = document.getElementById('allDataTable');
+      tbody.innerHTML = '';
+      
+      summaryData.forEach(row => {
+        const name = row[1];
+        const pending = parseFloat(row[2]) || 0;
+        const prepaid = parseFloat(row[3]) || 0;
+        const lastCovered = row[9] || '-';
+        
+        // Conditional Styling
+        const pendingStyle = pending > 0 ? 'color:#c62828; font-weight:bold' : 'color:#ccc';
+        const prepaidStyle = prepaid > 0 ? 'color:#2e7d32; font-weight:bold' : 'color:#ccc';
+
+        tbody.innerHTML += `
+          <tr>
+            <td><a href="#" onclick="loadUser('${name}'); return false;" style="text-decoration:none; color:#488daa; font-weight:600">${name}</a></td>
+            <td style="${pendingStyle}">${formatCurrency(pending)}</td>
+            <td style="${prepaidStyle}">${formatCurrency(prepaid)}</td>
+            <td style="font-size:0.85rem">${lastCovered}</td>
+            <td>
+               ${pending > 0 ? `<button onclick="copyLink('${name}')" class="btn btn-secondary" style="padding:5px 10px; font-size:0.8rem">Copy Link</button>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+      showView('alldata');
+    }
+
+    function copyLink(name) {
+      const url = `${window.location.origin}${window.location.pathname}?user=${encodeURIComponent(name)}`;
+      navigator.clipboard.writeText(url).then(() => alert("Link copied for " + name));
+    }
+
+    // Utility
+    function formatCurrency(val) {
+      const num = parseFloat(val);
+      if (isNaN(num)) return "0";
+      return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
+    }
   </script>
 </body>
 </html>
