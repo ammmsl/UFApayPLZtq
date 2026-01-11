@@ -5,716 +5,188 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>UFA Central - Payment Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(145deg, #dfc9ff 0%, #92c9ff 100%);
-      min-height: 100vh;
-      color: #333;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-
-    header {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 25px;
-      text-align: center;
-      margin-bottom: 25px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
-    }
-
-    .logo {
-      color: #488daa;
-      font-size: 2.2rem;
-      font-weight: 800;
-      margin-bottom: 5px;
-      letter-spacing: -1px;
-    }
-
-    .subtitle {
-      color: #666;
-      font-size: 1rem;
-      font-weight: 500;
-    }
-
-    /* Navigation / Search Section */
-    .controls-section {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 25px;
-      margin-bottom: 25px;
-      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-    }
-
-    .search-container {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .search-input {
-      flex: 1;
-      min-width: 200px;
-      padding: 12px 20px;
-      border: 2px solid #e1e5e9;
-      border-radius: 12px;
-      font-size: 16px;
-      transition: all 0.3s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #488daa;
-      box-shadow: 0 0 0 4px rgba(72, 141, 170, 0.1);
-    }
-
-    .btn {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-primary { background: #488daa; color: white; }
-    .btn-primary:hover { background: #357a96; transform: translateY(-2px); }
-
-    .btn-secondary { background: #f1f3f5; color: #495057; }
-    .btn-secondary:hover { background: #e9ecef; }
-    
-    .btn-accent { background: #ffc107; color: #333; }
-    .btn-accent:hover { background: #ffca2c; transform: translateY(-2px); }
-
-    /* Dashboard Layout */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 25px;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-      height: 100%;
-    }
-
-    .card-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin-bottom: 20px;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 2px solid #f1f3f5;
-      padding-bottom: 10px;
-    }
-
-    /* Frictionless Payment Card (Embedded) */
-    .payment-action-card {
-      background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
-      border: 2px solid #ffc9c9;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 25px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      animation: slideDown 0.5s ease;
-    }
-
-    @keyframes slideDown {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .payment-info {
-      flex: 1;
-      min-width: 200px;
-    }
-
-    .payment-alert-title {
-      color: #c62828;
-      font-weight: 800;
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .bank-details-box {
-      background: rgba(255,255,255,0.6);
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 10px;
-      border: 1px solid rgba(198, 40, 40, 0.1);
-    }
-
-    .account-number {
-      font-family: 'Courier New', monospace;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #333;
-      letter-spacing: 1px;
-      margin: 5px 0;
-    }
-
-    .qr-embed {
-      width: 140px;
-      height: 140px;
-      border-radius: 10px;
-      border: 4px solid white;
-      box-shadow: 0 4px 15px rgba(198, 40, 40, 0.2);
-    }
-
-    /* Stats Grid */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .stat-box {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 15px;
-      text-align: center;
-    }
-    
-    .stat-box.pending { background: #ffebee; color: #c62828; }
-    .stat-box.prepaid { background: #e8f5e8; color: #2e7d32; }
-
-    .stat-value { font-size: 1.5rem; font-weight: 800; margin-bottom: 5px; }
-    .stat-label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
-
-    /* Tables */
-    .table-wrapper {
-      overflow-x: auto;
-      border-radius: 12px;
-      border: 1px solid #e9ecef;
-    }
-
-    table { width: 100%; border-collapse: collapse; min-width: 500px; }
-    th { background: #f8f9fa; padding: 12px; text-align: left; font-size: 0.9rem; color: #666; }
-    td { padding: 12px; border-bottom: 1px solid #f1f3f5; font-size: 0.95rem; }
-    tr:last-child td { border-bottom: none; }
-
-    /* Leaderboard Styles */
-    .leaderboard-row {
-      display: flex;
-      align-items: center;
-      padding: 15px;
-      border-bottom: 1px solid #f1f3f5;
-      transition: background 0.2s;
-    }
-    .leaderboard-row:hover { background: #f8f9fa; }
-    
-    .rank-circle {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      background: #e9ecef;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      margin-right: 15px;
-      color: #666;
-    }
-    
-    .rank-1 { background: #ffd700; color: #b45309; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
-    .rank-2 { background: #e0e0e0; color: #555; }
-    .rank-3 { background: #cd7f32; color: #fff; }
-    
-    .lb-name { flex: 1; font-weight: 600; font-size: 1.05rem; }
-    .lb-stat { font-weight: 700; color: #488daa; font-size: 1.1rem; }
-    .lb-sub { font-size: 0.8rem; color: #999; margin-left: 5px; font-weight: 400; }
-
-    /* Mobile Tweaks */
-    @media (max-width: 768px) {
-      .payment-action-card { flex-direction: column-reverse; align-items: center; text-align: center; }
-      .payment-info { width: 100%; }
-      .bank-details-box { text-align: center; }
-      .dashboard-grid { grid-template-columns: 1fr; }
-      .logo { font-size: 1.8rem; }
-      .account-number { font-size: 1.2rem; }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <div class="container">
     <header>
       <div class="logo">🥏 UFA Central</div>
-      <div class="subtitle">Ultimate Frisbee Association Tracker</div>
+      <div class="subtitle">Ultimate Frisbee Association Payment Tracker</div>
+      <div id="lastUpdated" style="margin-top: 15px; font-size: 0.9rem; color: #888;">Updating...</div>
     </header>
 
-    <div class="controls-section">
+    <div class="search-section">
+      <h2 style="margin-top: 0; color: #333; font-size: 1.5rem;">Find Your Payment Status</h2>
       <div class="search-container">
-        <input type="text" id="nameSearch" class="search-input" placeholder="Enter your name...">
+        <input type="text" id="nameSearch" class="search-input" placeholder="Start typing your name...">
         <button id="clearSearch" class="btn btn-secondary">Clear</button>
-        <div style="flex:1"></div> <button id="btnLeaderboard" class="btn btn-accent">🏆 Leaderboard</button>
-        <button id="btnAllData" class="btn btn-secondary">📋 All Data</button>
+        <button id="showAllData" class="btn btn-secondary">View All Data</button>
       </div>
-      <div id="searchSuggestions" style="display: none; margin-top: 15px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+      <div id="searchSuggestions" style="display: none; margin-top: 10px;">
+        <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select your name:</div>
+        <div id="suggestionList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+      </div>
     </div>
 
-    <div id="loadingState" style="text-align: center; padding: 40px; color: #666;">
-      Loading data...
+    <div id="loadingState" class="loading">
+      <div class="spinner"></div> Loading payment data...
     </div>
 
-    <div id="welcomeView" style="display: none; text-align: center; padding: 40px; background: white; border-radius: 20px;">
-      <h2 style="color: #488daa;">Welcome! 👋</h2>
-      <p style="color: #666; max-width: 500px; margin: 0 auto;">
-        Type your name above to see your payment status, attendance stats, and history. 
-        <br><br>
-        Or check out the <strong>Leaderboard</strong> to see who's dominating the field this year!
-      </p>
+    <div id="welcomeMessage" class="welcome-message" style="display: none;">
+      <h3 style="margin:0 0 10px 0; color: #155724;">Welcome to UFA Payment Tracker!</h3>
+      <div style="color: #155724;">Search for your name above to view your personal payment status.</div>
     </div>
 
     <div id="userDashboard" style="display: none;">
-      
-      <div id="paymentAlert" class="payment-action-card" style="display: none;">
-        <div class="payment-info">
-          <div class="payment-alert-title">
-            <span>⚠️ Outstanding Balance</span>
-          </div>
-          <div style="font-size: 0.95rem; color: #555; margin-bottom: 10px;">
-            You have <strong id="alertAmount" style="color:#c62828">0 MVR</strong> pending. Please settle immediately.
+      <div id="personalWelcome" class="welcome-message">
+        <h3 style="margin:0 0 10px 0;">Welcome back, <span id="selectedUserName"></span>!</h3>
+        <div>Here's your complete payment and attendance summary</div>
+      </div>
+
+      <div class="dashboard">
+        <div class="card">
+          <div class="card-title">💰 Payment Summary</div>
+          <div class="summary-grid">
+            <div id="pendingSummary" class="summary-item pending">
+              <div class="summary-value" id="pendingAmount">0</div>
+              <div class="summary-label">Pending</div>
+            </div>
+            <div class="summary-item prepaid">
+              <div class="summary-value" id="prepayAmount">0</div>
+              <div class="summary-label">Prepaid</div>
+            </div>
+            <div class="summary-item neutral">
+              <div class="summary-value" id="totalPayment">0</div>
+              <div class="summary-label">Total Payment</div>
+            </div>
           </div>
           
-          <div class="bank-details-box">
-            <div style="font-size: 0.75rem; text-transform: uppercase; color: #888;">Transfer to BML</div>
-            <div class="account-number">7730000682000</div>
-            <div style="font-size: 0.85rem; color: #666;">MOHD. AMSAL</div>
+          <div id="pendingActionArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+             </div>
+
+          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+             <div><div class="summary-label">Last Paid</div><strong id="lastPaymentDate">-</strong></div>
+             <div><div class="summary-label">Amount</div><strong id="lastPaymentAmount">-</strong></div>
+             <div><div class="summary-label">Covered Until</div><strong id="lastCoveredDate">-</strong></div>
+          </div>
+          
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef; display: flex; justify-content: space-around;">
+             <div style="text-align: center;"><strong id="totalSessions" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Total Sessions</div></div>
+             <div style="text-align: center;"><strong id="avgCost" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Avg Cost</div></div>
           </div>
         </div>
-        <div style="display: flex; justify-content: center; align-items: center;">
-             <img src="payment_qr.png" alt="Scan to Pay" class="qr-embed" onerror="this.style.display='none'">
+
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <div class="card-title" style="margin: 0;">📊 Activity Overview</div>
+              <select id="chartYearFilter" style="padding: 8px; border-radius: 8px; border: 1px solid #e1e5e9; font-size: 0.9rem; background: #f8f9fa;">
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+              </select>
+          </div>
+          
+          <div class="summary-grid" style="margin-bottom: 25px;">
+            <div class="summary-item neutral"><div class="summary-value" id="sessions2024">0</div><div class="summary-label">2024 Sessions</div></div>
+            <div class="summary-item neutral"><div class="summary-value" id="sessions2025">0</div><div class="summary-label">2025 Sessions</div></div>
+            <div class="summary-item neutral"><div class="summary-value" id="recentSessions">0</div><div class="summary-label">Last 30 Days</div></div>
+          </div>
+
+          <div style="position: relative; height: 250px; width: 100%;">
+              <canvas id="activityChart"></canvas>
+          </div>
         </div>
       </div>
 
-      <div class="dashboard-grid">
-        <div style="display: flex; flex-direction: column; gap: 25px;">
-          
-          <div class="card">
-            <div class="card-title">💰 Balance Summary</div>
-            <div class="stats-row">
-              <div class="stat-box pending">
-                <div class="stat-value" id="dispPending">0</div>
-                <div class="stat-label">Pending</div>
-              </div>
-              <div class="stat-box prepaid">
-                <div class="stat-value" id="dispPrepaid">0</div>
-                <div class="stat-label">Prepaid</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-value" id="dispTotal">0</div>
-                <div class="stat-label">Total Paid</div>
-              </div>
-            </div>
-            
-            <div style="margin-top: 15px; font-size: 0.9rem; color: #666; text-align: center;">
-              Last covered date: <strong id="dispLastCovered">-</strong>
-            </div>
-          </div>
-
-          <div class="card">
-             <div class="card-title">📊 Attendance Trend</div>
-             <canvas id="attendanceChart" height="200"></canvas>
-          </div>
+      <div class="card">
+        <div class="card-title">📅 Attendance History</div>
+        <div class="filters">
+            <div class="filter-group"><label class="filter-label">Month</label><select id="monthFilter" class="att-filter"><option value="all">All Months</option></select></div>
+            <div class="filter-group"><label class="filter-label">Year</label><select id="yearFilter" class="att-filter"><option value="all">All Years</option><option value="2024">2024</option><option value="2025">2025</option></select></div>
+            <div class="filter-group"><label class="filter-label">Location</label><select id="locationFilter" class="att-filter"><option value="all">All Locations</option></select></div>
         </div>
-
-        <div class="card">
-          <div class="card-title">📅 Recent Activity</div>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Location</th>
-                  <th>Cost</th>
-                </tr>
-              </thead>
-              <tbody id="userHistoryTable"></tbody>
-            </table>
-          </div>
-          <div style="margin-top: 15px; text-align: center;">
-            <button class="btn btn-secondary" onclick="showAllData()">View Full History</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="leaderboardView" style="display: none;">
-      <div class="dashboard-grid">
-        <div class="card">
-          <div class="card-title">🔥 Top Attendees (2024-25)</div>
-          <div id="attendanceLeaderboardList"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">🐋 Top Credit Holders</div>
-          <div style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">
-            Members with the highest prepaid balance.
-          </div>
-          <div id="creditLeaderboardList"></div>
+        <div class="table-container">
+          <table id="attendanceTable">
+            <thead>
+              <tr>
+                <th data-sort="date">Date</th>
+                <th data-sort="location">Location</th>
+                <th data-sort="month">Month</th>
+                <th data-sort="cost">Cost</th>
+                <th data-sort="status">Membership</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
     </div>
 
     <div id="allDataView" style="display: none;">
       <div class="card">
-        <div class="card-title">📋 Complete Database</div>
-        <div class="table-wrapper" style="max-height: 70vh; overflow-y: auto;">
-          <table>
-            <thead style="position: sticky; top: 0; z-index: 10;">
-              <tr>
-                <th>Name</th>
-                <th>Pending</th>
-                <th>Prepaid</th>
-                <th>Last Covered</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="allDataTable"></tbody>
-          </table>
+        <div class="card-title">📋 All Payment Records</div>
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Filter Status</label>
+                <select id="paymentStatusFilter">
+                  <option value="all">All Records</option>
+                  <option value="pending">Pending Only</option>
+                  <option value="prepaid">Prepaid Only</option>
+                  <option value="balanced">Balanced</option>
+                </select>
+            </div>
+            
+            <div class="filter-group" id="neverPaidFilterGroup" style="display: none; justify-content: flex-end;">
+                <div style="height: 21px;"></div> <label style="display: flex; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 2px solid #e1e5e9; cursor: pointer;">
+                    <input type="checkbox" id="neverPaidToggle" style="width: auto; margin-right: 8px;">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: #495057;">Never Paid Only</span>
+                </label>
+            </div>
+        </div>
+        <div class="table-container">
+            <table id="allPaymentsTable">
+              <thead>
+                <tr>
+                  <th data-sort="name">Name</th>
+                  <th data-sort="pending">Pending</th>
+                  <th data-sort="prepay">Prepay Bal</th>
+                  <th data-sort="total">Total Paid</th>
+                  <th data-sort="lastDate">Covered Until</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+              <tfoot>
+                <tr>
+                  <td>TOTAL</td>
+                  <td id="totalPendingSum">0 MVR</td>
+                  <td id="totalPrepaySum">0 MVR</td>
+                  <td id="totalPaymentSum">0 MVR</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
         </div>
       </div>
     </div>
-
   </div>
 
-  <script>
-    // --- CONFIGURATION ---
-    const apiKey = "AIzaSyB4FKQrbrtGpBztkZVriYkEGsXlnLXHAN0";
-    const sheetID = "1kI6E4J0pL4lUa2NH-FYEd2rWUE7Uzsz-CnGOg68ERtc";
-    
-    // --- STATE ---
-    let summaryData = [];
-    let attendanceData = [];
-    let allNames = [];
-    let myChart = null; // Chart instance
+  <div id="qrModal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h3>Scan to Pay</h3>
+      <p style="color: #666; font-size: 0.9rem;">Scan the QR code or use account details.</p>
+      <img src="payment_qr.png" alt="QR Code" style="width: 100%; max-width: 250px; border-radius: 10px; border: 1px solid #eee;" onerror="this.style.display='none'">
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+        <div style="font-size: 0.8rem; color: #888;">Account Number</div>
+        <div style="font-size: 1.2rem; font-weight: bold;">7730000682000</div>
+        <div style="font-size: 0.9rem;">MOHD. AMSAL</div>
+      </div>
+      <button class="btn btn-secondary close-modal-btn" style="margin-top: 20px;">Close</button>
+    </div>
+  </div>
 
-    // --- INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-      initApp();
-      setupEventListeners();
-    });
-
-    async function initApp() {
-      try {
-        const baseURL = `https://sheets.googleapis.com/v4/spreadsheets/${sheetID}/values`;
-        
-        // Parallel fetch for speed
-        const [summaryRes, attendanceRes] = await Promise.all([
-          fetch(`${baseURL}/Summary Sheet?key=${apiKey}`),
-          fetch(`${baseURL}/PivotAttendance?key=${apiKey}`)
-        ]);
-
-        const summaryJson = await summaryRes.json();
-        const attendanceJson = await attendanceRes.json();
-
-        // Process Data (Skip headers)
-        summaryData = (summaryJson.values || []).slice(1);
-        attendanceData = (attendanceJson.values || []).slice(1);
-        
-        // Extract Unique Names
-        allNames = [...new Set(summaryData.map(row => row[1]))].filter(Boolean).sort();
-        
-        document.getElementById('loadingState').style.display = 'none';
-        
-        // Check URL for Deep Link
-        const urlParams = new URLSearchParams(window.location.search);
-        const linkedUser = urlParams.get('user');
-        
-        if (linkedUser && allNames.includes(linkedUser)) {
-           loadUser(linkedUser);
-        } else {
-           showView('welcome');
-        }
-
-      } catch (err) {
-        console.error(err);
-        document.getElementById('loadingState').innerText = "Failed to load data. Please refresh.";
-      }
-    }
-
-    function setupEventListeners() {
-      // Search
-      const searchInput = document.getElementById('nameSearch');
-      const suggestions = document.getElementById('searchSuggestions');
-      
-      searchInput.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase();
-        suggestions.innerHTML = '';
-        
-        if (val.length < 1) {
-          suggestions.style.display = 'none';
-          return;
-        }
-
-        const matches = allNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
-        
-        if (matches.length > 0) {
-          suggestions.style.display = 'flex';
-          matches.forEach(name => {
-            const btn = document.createElement('button');
-            btn.className = 'btn btn-secondary';
-            btn.style.padding = '8px 15px';
-            btn.textContent = name;
-            btn.onclick = () => loadUser(name);
-            suggestions.appendChild(btn);
-          });
-        } else {
-          suggestions.style.display = 'none';
-        }
-      });
-
-      // Buttons
-      document.getElementById('clearSearch').onclick = () => {
-        searchInput.value = '';
-        suggestions.style.display = 'none';
-        window.history.pushState({}, '', window.location.pathname);
-        showView('welcome');
-      };
-
-      document.getElementById('btnLeaderboard').onclick = loadLeaderboard;
-      document.getElementById('btnAllData').onclick = loadAllData;
-    }
-
-    // --- CORE LOGIC ---
-
-    function showView(viewName) {
-      document.getElementById('welcomeView').style.display = 'none';
-      document.getElementById('userDashboard').style.display = 'none';
-      document.getElementById('leaderboardView').style.display = 'none';
-      document.getElementById('allDataView').style.display = 'none';
-
-      if (viewName === 'welcome') document.getElementById('welcomeView').style.display = 'block';
-      if (viewName === 'dashboard') document.getElementById('userDashboard').style.display = 'block';
-      if (viewName === 'leaderboard') document.getElementById('leaderboardView').style.display = 'block';
-      if (viewName === 'alldata') document.getElementById('allDataView').style.display = 'block';
-    }
-
-    function loadUser(name) {
-      // 1. Set State
-      document.getElementById('nameSearch').value = name;
-      document.getElementById('searchSuggestions').style.display = 'none';
-      
-      // 2. Update URL (Deep Link)
-      const newUrl = `${window.location.pathname}?user=${encodeURIComponent(name)}`;
-      window.history.pushState({path: newUrl}, '', newUrl);
-
-      // 3. Get Data
-      const userSummary = summaryData.find(row => row[1] === name);
-      const userAttendance = attendanceData.filter(row => row[0] === name);
-
-      if (!userSummary) return;
-
-      // 4. Update Stats
-      const pending = parseFloat(userSummary[2]) || 0;
-      const prepaid = parseFloat(userSummary[3]) || 0;
-      
-      document.getElementById('dispPending').innerText = formatCurrency(pending);
-      document.getElementById('dispPrepaid').innerText = formatCurrency(prepaid);
-      document.getElementById('dispTotal').innerText = formatCurrency(userSummary[4]);
-      document.getElementById('dispLastCovered').innerText = userSummary[9] || '-';
-
-      // 5. THE FRICTIONLESS PAYMENT LOGIC
-      const alertBox = document.getElementById('paymentAlert');
-      if (pending > 0) {
-        alertBox.style.display = 'flex';
-        document.getElementById('alertAmount').innerText = formatCurrency(pending);
-      } else {
-        alertBox.style.display = 'none';
-      }
-
-      // 6. Populate Recent History (Last 10)
-      const tbody = document.getElementById('userHistoryTable');
-      tbody.innerHTML = '';
-      userAttendance.slice(-10).reverse().forEach(row => {
-        tbody.innerHTML += `
-          <tr>
-            <td>${row[3]}</td>
-            <td>${row[1]}</td>
-            <td style="font-weight:bold">${row[4]}</td>
-          </tr>
-        `;
-      });
-
-      // 7. Render Chart
-      renderChart(userAttendance);
-
-      showView('dashboard');
-    }
-
-    function renderChart(data) {
-      const ctx = document.getElementById('attendanceChart').getContext('2d');
-      
-      // Process Data: Group by Month-Year
-      const counts = {};
-      data.forEach(row => {
-        // Assuming row[2] is Month (e.g., "December") and row[3] is Date
-        // We need to parse date to sort correctly, but for simplicity let's use the provided Month column
-        // Better approach: Take last 6 months
-        const dateStr = row[3]; // "2 Dec 2025"
-        if(!dateStr) return;
-        
-        const parts = dateStr.split('/'); // Assuming format dd/mm/yyyy based on previous code
-        // Fallback if format is different
-        let key = row[2]; // Use Month column
-        counts[key] = (counts[key] || 0) + 1;
-      });
-
-      // Sort months (Primitive sort for now, keys are Month Names)
-      // Ideally we map month names to numbers.
-      const labels = Object.keys(counts); 
-      const values = Object.values(counts);
-
-      if (myChart) myChart.destroy();
-
-      myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Sessions',
-            data: values,
-            backgroundColor: 'rgba(72, 141, 170, 0.6)',
-            borderColor: 'rgba(72, 141, 170, 1)',
-            borderWidth: 1,
-            borderRadius: 5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { beginAtZero: true, ticks: { stepSize: 1 } }
-          },
-          plugins: {
-            legend: { display: false }
-          }
-        }
-      });
-    }
-
-    function loadLeaderboard() {
-      // 1. Calculate Attendance
-      const counts = {};
-      attendanceData.forEach(row => {
-        const name = row[0];
-        if(name) counts[name] = (counts[name] || 0) + 1;
-      });
-
-      // Sort Top 15
-      const sortedAttendance = Object.entries(counts)
-        .sort((a,b) => b[1] - a[1])
-        .slice(0, 15);
-
-      // 2. Render Attendance List
-      const attList = document.getElementById('attendanceLeaderboardList');
-      attList.innerHTML = '';
-      
-      sortedAttendance.forEach((item, index) => {
-        const rank = index + 1;
-        const rankClass = rank <= 3 ? `rank-${rank}` : '';
-        attList.innerHTML += `
-          <div class="leaderboard-row">
-            <div class="rank-circle ${rankClass}">${rank}</div>
-            <div class="lb-name">${item[0]}</div>
-            <div class="lb-stat">${item[1]} <span class="lb-sub">sessions</span></div>
-          </div>
-        `;
-      });
-
-      // 3. Calculate "Whales" (Credit Holders)
-      const sortedCredit = [...summaryData]
-        .map(row => ({ name: row[1], credit: parseFloat(row[3]) || 0 }))
-        .sort((a,b) => b.credit - a.credit)
-        .filter(x => x.credit > 0)
-        .slice(0, 10);
-
-      const credList = document.getElementById('creditLeaderboardList');
-      credList.innerHTML = '';
-      
-      sortedCredit.forEach((item, index) => {
-        credList.innerHTML += `
-          <div class="leaderboard-row">
-            <div class="rank-circle" style="font-size:0.8rem; background:#e8f5e8; color:#2e7d32">#${index+1}</div>
-            <div class="lb-name">${item.name}</div>
-            <div class="lb-stat" style="color:#2e7d32">${item.credit.toFixed(0)} <span class="lb-sub">MVR</span></div>
-          </div>
-        `;
-      });
-
-      showView('leaderboard');
-    }
-
-    function loadAllData() {
-      const tbody = document.getElementById('allDataTable');
-      tbody.innerHTML = '';
-      
-      summaryData.forEach(row => {
-        const name = row[1];
-        const pending = parseFloat(row[2]) || 0;
-        const prepaid = parseFloat(row[3]) || 0;
-        const lastCovered = row[9] || '-';
-        
-        // Conditional Styling
-        const pendingStyle = pending > 0 ? 'color:#c62828; font-weight:bold' : 'color:#ccc';
-        const prepaidStyle = prepaid > 0 ? 'color:#2e7d32; font-weight:bold' : 'color:#ccc';
-
-        tbody.innerHTML += `
-          <tr>
-            <td><a href="#" onclick="loadUser('${name}'); return false;" style="text-decoration:none; color:#488daa; font-weight:600">${name}</a></td>
-            <td style="${pendingStyle}">${formatCurrency(pending)}</td>
-            <td style="${prepaidStyle}">${formatCurrency(prepaid)}</td>
-            <td style="font-size:0.85rem">${lastCovered}</td>
-            <td>
-               ${pending > 0 ? `<button onclick="copyLink('${name}')" class="btn btn-secondary" style="padding:5px 10px; font-size:0.8rem">Copy Link</button>` : ''}
-            </td>
-          </tr>
-        `;
-      });
-      showView('alldata');
-    }
-
-    function copyLink(name) {
-      const url = `${window.location.origin}${window.location.pathname}?user=${encodeURIComponent(name)}`;
-      navigator.clipboard.writeText(url).then(() => alert("Link copied for " + name));
-    }
-
-    // Utility
-    function formatCurrency(val) {
-      const num = parseFloat(val);
-      if (isNaN(num)) return "0";
-      return num % 1 === 0 ? num.toFixed(0) : num.toFixed(2);
-    }
-  </script>
+<script src="app.js"></script>
 </body>
 </html>
