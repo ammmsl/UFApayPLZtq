@@ -46,41 +46,62 @@
       </div>
 
       <div class="dashboard">
+        <!-- Left card: Tabbed (Payment Summary / Activity Overview) -->
         <div class="card">
-          <div class="card-title">💰 Payment Summary</div>
-          <div class="summary-grid">
-            <div id="pendingSummary" class="summary-item pending">
-              <div class="summary-value" id="pendingAmount">0</div>
-              <div class="summary-label">Pending</div>
+          <div class="tab-header">
+            <button class="tab-btn active" data-tab="paymentSummary">Payment Summary</button>
+            <button class="tab-btn" data-tab="activityOverview">Activity Overview</button>
+          </div>
+
+          <!-- Tab: Payment Summary (default) -->
+          <div id="tabPaymentSummary" class="tab-content active">
+            <div class="summary-grid">
+              <div id="pendingSummary" class="summary-item pending">
+                <div class="summary-value" id="pendingAmount">0</div>
+                <div class="summary-label">Pending</div>
+              </div>
+              <div class="summary-item prepaid">
+                <div class="summary-value" id="prepayAmount">0</div>
+                <div class="summary-label">Prepaid</div>
+              </div>
+              <div class="summary-item neutral">
+                <div class="summary-value" id="totalPayment">0</div>
+                <div class="summary-label">Total Payment</div>
+              </div>
             </div>
-            <div class="summary-item prepaid">
-              <div class="summary-value" id="prepayAmount">0</div>
-              <div class="summary-label">Prepaid</div>
+
+            <div id="pendingActionArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
             </div>
-            <div class="summary-item neutral">
-              <div class="summary-value" id="totalPayment">0</div>
-              <div class="summary-label">Total Payment</div>
+
+            <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+               <div><div class="summary-label">Last Paid</div><strong id="lastPaymentDate">-</strong></div>
+               <div><div class="summary-label">Amount</div><strong id="lastPaymentAmount">-</strong></div>
+               <div><div class="summary-label">Covered Until</div><strong id="lastCoveredDate">-</strong></div>
+            </div>
+
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef; display: flex; justify-content: space-around;">
+               <div style="text-align: center;"><strong id="totalSessions" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Total Sessions</div></div>
+               <div style="text-align: center;"><strong id="avgCost" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Avg Cost</div></div>
             </div>
           </div>
 
-          <div id="pendingActionArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
-             </div>
+          <!-- Tab: Activity Overview -->
+          <div id="tabActivityOverview" class="tab-content">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+              <select id="chartYearFilter" style="padding: 8px; border-radius: 8px; border: 1px solid #e1e5e9; font-size: 0.9rem; background: #f8f9fa;">
+              </select>
+            </div>
 
-          <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e9ecef; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
-             <div><div class="summary-label">Last Paid</div><strong id="lastPaymentDate">-</strong></div>
-             <div><div class="summary-label">Amount</div><strong id="lastPaymentAmount">-</strong></div>
-             <div><div class="summary-label">Covered Until</div><strong id="lastCoveredDate">-</strong></div>
-          </div>
+            <div class="summary-grid" style="margin-bottom: 25px;" id="yearSessionCards">
+            </div>
 
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef; display: flex; justify-content: space-around;">
-             <div style="text-align: center;"><strong id="totalSessions" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Total Sessions</div></div>
-             <div style="text-align: center;"><strong id="avgCost" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Avg Cost</div></div>
-          </div>
-
-          <div class="summary-grid" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;" id="yearSessionCards">
+            <div style="position: relative; height: 250px; width: 100%;">
+              <canvas id="activityChart"></canvas>
+            </div>
           </div>
         </div>
 
+        <!-- Right card: Financial Overview -->
         <div class="card">
           <div class="card-title" style="margin-bottom: 15px;">📊 Financial Overview</div>
           <div style="position: relative; height: 280px; width: 100%;">

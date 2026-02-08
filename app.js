@@ -27,6 +27,7 @@ const $ = (selector) => {
 
 const ATT = { NAME: 0, LOCATION: 1, MONTH: 2, DATE: 3, COST: 4, MEMBERSHIP: 6 };
 const SUM = { NAME: 1, PENDING: 2, PREPAY: 3, TOTAL: 4, LAST_PAID_DATE: 7, LAST_PAID_AMT: 8, COVERED_UNTIL: 9 };
+const PAY = { DATE: 0, NAME: 1, PLAYER_ID: 2, COMMENT: 3, REFERENCE: 4, TXN_DATE: 5, FROM: 6, TO: 7, ACCOUNT: 8, AMOUNT: 9, REMARKS: 10, PREPAYMENT: 11 };
 
 const MONTH_ORDER = {
     jan:0, january:0, feb:1, february:1, mar:2, march:2,
@@ -46,6 +47,7 @@ const CONFIG = {
 let state = {
     summary: [],
     attendance: [],
+    payments: [],
     users: [],
     years: [],
     currentUser: null,
@@ -53,7 +55,8 @@ let state = {
     paymentSort: { col: null, asc: true }
 };
 
-let chartInstance = null;
+let financialChartInstance = null;
+let activityChartInstance = null;
 
 // --- Utilities ---
 
@@ -64,6 +67,7 @@ const parseDate = (str) => {
     const [d, m, y] = str.trim().split('/');
     return new Date(y, m - 1, d);
 };
+const fmtDateShort = (d) => `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 
 function getMembershipBadge(row) {
     const yr = (parseDate(row[ATT.DATE]) || new Date(0)).getFullYear();
@@ -81,40 +85,60 @@ function getMembershipBadge(row) {
 // --- Financial Ledger Engine ---
 
 function calculateFinancialLedger(userName) {
-    const summaryRow = state.summary.find(r => r[SUM.NAME] === userName);
-    const totalPaid = summaryRow ? parseMoney(summaryRow[SUM.TOTAL]) : 0;
-
-    const sessions = state.attendance
+    // Cost events from attendance
+    const costEvents = state.attendance
         .filter(r => r[ATT.NAME] === userName)
         .map(r => ({
             date: parseDate(r[ATT.DATE]),
             dateStr: r[ATT.DATE],
             location: r[ATT.LOCATION],
             month: r[ATT.MONTH],
-            cost: parseMoney(r[ATT.COST])
+            type: 'cost',
+            amount: parseMoney(r[ATT.COST])
         }))
-        .filter(r => r.date)
-        .sort((a, b) => a.date - b.date);
+        .filter(r => r.date);
 
-    let cumulativeCost = 0;
+    // Payment events from Payments sheet
+    const payEvents = (state.payments || [])
+        .filter(r => r[PAY.NAME] === userName)
+        .map(r => ({
+            date: parseDate(r[PAY.DATE]),
+            dateStr: r[PAY.DATE],
+            type: 'payment',
+            amount: parseMoney(r[PAY.AMOUNT]),
+            reference: r[PAY.REFERENCE] || ''
+        }))
+        .filter(r => r.date && r.amount > 0);
+
+    // Unified timeline sorted by date
+    const timeline = [...costEvents, ...payEvents].sort((a, b) => a.date - b.date);
+
+    let cumCost = 0, cumPaid = 0;
+    timeline.forEach(e => {
+        if (e.type === 'cost') cumCost += e.amount;
+        else cumPaid += e.amount;
+        e.cumulativeCost = cumCost;
+        e.cumulativePaid = cumPaid;
+    });
+
+    // FIFO status on cost events only using final total paid
+    const totalPaid = cumPaid;
+    const sessions = costEvents.sort((a, b) => a.date - b.date);
+    let runningCost = 0;
     sessions.forEach(s => {
-        const prev = cumulativeCost;
-        cumulativeCost += s.cost;
-        if (cumulativeCost <= totalPaid) {
-            s.status = 'paid';
-        } else if (prev < totalPaid) {
-            s.status = 'partial';
-        } else {
-            s.status = 'unpaid';
-        }
-        s.cumulativeCost = cumulativeCost;
+        const prev = runningCost;
+        runningCost += s.amount;
+        if (runningCost <= totalPaid) s.status = 'paid';
+        else if (prev < totalPaid) s.status = 'partial';
+        else s.status = 'unpaid';
+        s.cumulativeCost = runningCost;
     });
 
     const unpaidCount = sessions.filter(s => s.status === 'unpaid').length;
     const partialCount = sessions.filter(s => s.status === 'partial').length;
     const pendingCount = unpaidCount + partialCount;
 
-    return { sessions, totalPaid, cumulativeCost, unpaidCount, partialCount, pendingCount };
+    return { timeline, sessions, totalPaid, cumulativeCost: cumCost, cumulativePaid: cumPaid, unpaidCount, partialCount, pendingCount };
 }
 
 function getHealthBadge(ledger) {
@@ -137,14 +161,16 @@ async function initApp() {
     try {
         $('#loadingState').show();
 
-        const [summaryRes, attendanceRes, metaRes] = await Promise.all([
+        const [summaryRes, attendanceRes, paymentsRes, metaRes] = await Promise.all([
             fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`).then(r=>r.json()),
             fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`).then(r=>r.json()),
+            fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`).then(r=>r.json()),
             fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`).then(r=>r.json())
         ]);
 
         state.summary = summaryRes.values.slice(1);
         state.attendance = attendanceRes.values.slice(1);
+        state.payments = (paymentsRes.values || []).slice(1);
         state.users = [...new Set(state.summary.map(r => r[SUM.NAME]))].filter(Boolean).sort();
 
         const lastUpdate = metaRes.properties?.lastUpdateTime
@@ -187,6 +213,7 @@ function populateFilters() {
     $('#monthFilter').html(`<option value="all">All Months</option>${monthOpts}`);
     $('#locationFilter').html(`<option value="all">All Locations</option>${locOpts}`);
     $('#yearFilter').html(`<option value="all">All Years</option>${yearOpts}`);
+    $('#chartYearFilter').html(yearOpts);
 }
 
 // --- User Dashboard ---
@@ -232,7 +259,7 @@ function renderUserDashboard(userName) {
         }
     }
 
-    // Stats
+    // Stats for Payment Summary tab
     const paidSessions = attRows.filter(r => parseMoney(r[ATT.COST]) > 0);
     const totalCost = paidSessions.reduce((acc, r) => acc + parseMoney(r[ATT.COST]), 0);
     const avg = paidSessions.length ? totalCost / paidSessions.length : 0;
@@ -240,7 +267,7 @@ function renderUserDashboard(userName) {
     $('#totalSessions').text(attRows.length);
     $('#avgCost').text(Math.round(avg) + ' MVR');
 
-    // Year session cards
+    // Year session cards for Activity tab
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentCount = attRows.filter(r => parseDate(r[ATT.DATE]) >= thirtyDaysAgo).length;
 
@@ -257,10 +284,15 @@ function renderUserDashboard(userName) {
     const ledger = calculateFinancialLedger(userName);
     $('#healthBadge').html(getHealthBadge(ledger));
 
-    // Render new components
+    // Render components
     renderFinancialChart(ledger);
     renderSessionStatus(ledger);
     renderAttendanceTable(attRows);
+
+    // Render activity chart if that tab is currently visible
+    if ($('#tabActivityOverview').el?.classList.contains('active')) {
+        renderActivityChart(attRows);
+    }
 }
 
 // --- Financial Burn-Up Chart ---
@@ -268,28 +300,25 @@ function renderUserDashboard(userName) {
 function renderFinancialChart(ledger) {
     const ctx = document.getElementById('financialChart').getContext('2d');
 
-    if (chartInstance) chartInstance.destroy();
+    if (financialChartInstance) financialChartInstance.destroy();
 
-    if (ledger.sessions.length === 0) {
+    if (ledger.timeline.length === 0) {
         ctx.canvas.parentElement.innerHTML = '<div class="loading">No session data to chart.</div>';
         return;
     }
 
-    const labels = ledger.sessions.map(s => {
-        return `${s.date.getDate()} ${SHORT_MONTHS[s.date.getMonth()]} ${String(s.date.getFullYear()).slice(2)}`;
-    });
+    const labels = ledger.timeline.map(e => fmtDateShort(e.date));
+    const cumCosts = ledger.timeline.map(e => e.cumulativeCost);
+    const cumPaids = ledger.timeline.map(e => e.cumulativePaid);
 
-    const cumulativeCosts = ledger.sessions.map(s => s.cumulativeCost);
-    const paidLine = ledger.sessions.map(() => ledger.totalPaid);
-
-    chartInstance = new Chart(ctx, {
+    financialChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
             datasets: [
                 {
                     label: 'Total Owed',
-                    data: cumulativeCosts,
+                    data: cumCosts,
                     stepped: true,
                     borderColor: 'rgb(239, 83, 80)',
                     backgroundColor: 'transparent',
@@ -304,13 +333,13 @@ function renderFinancialChart(ledger) {
                 },
                 {
                     label: 'Total Paid',
-                    data: paidLine,
+                    data: cumPaids,
+                    stepped: true,
                     borderColor: 'rgb(76, 175, 80)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
-                    borderDash: [6, 3],
-                    pointRadius: 0,
-                    pointHoverRadius: 0,
+                    pointRadius: 1.5,
+                    pointHoverRadius: 4,
                     fill: false
                 }
             ]
@@ -325,9 +354,7 @@ function renderFinancialChart(ledger) {
                 },
                 y: {
                     beginAtZero: true,
-                    ticks: {
-                        callback: function(value) { return value + ' MVR'; }
-                    }
+                    ticks: { callback: function(value) { return value + ' MVR'; } }
                 }
             },
             plugins: {
@@ -335,19 +362,77 @@ function renderFinancialChart(ledger) {
                     callbacks: {
                         title: function(items) {
                             const idx = items[0].dataIndex;
-                            const s = ledger.sessions[idx];
-                            return `${s.dateStr} — ${s.location}`;
+                            const e = ledger.timeline[idx];
+                            if (e.type === 'cost') return `${e.dateStr} — ${e.location}`;
+                            return `${e.dateStr} — Payment`;
                         },
                         afterBody: function(items) {
                             const idx = items[0].dataIndex;
-                            const s = ledger.sessions[idx];
-                            const label = s.status === 'paid' ? 'Paid' : s.status === 'partial' ? 'Partial' : 'Unpaid';
-                            return [`Session cost: ${fmtMoney(s.cost)}`, `Status: ${label}`];
+                            const e = ledger.timeline[idx];
+                            if (e.type === 'cost') return [`Session cost: ${fmtMoney(e.amount)}`];
+                            return [`Payment: ${fmtMoney(e.amount)}`, e.reference ? `Ref: ${e.reference}` : ''].filter(Boolean);
                         }
                     }
                 },
                 legend: { display: true, position: 'top' },
                 filler: { propagate: true }
+            }
+        }
+    });
+}
+
+// --- Activity Overview Chart (bar chart, sessions per month) ---
+
+function renderActivityChart(attRows) {
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const selectedYear = $('#chartYearFilter').val();
+
+    const stats = Array.from({length: 12}, () => ({ count: 0, totalCost: 0 }));
+
+    attRows.forEach(r => {
+        const date = parseDate(r[ATT.DATE]);
+        if (date && date.getFullYear().toString() === selectedYear) {
+            const monthIdx = date.getMonth();
+            stats[monthIdx].count++;
+            stats[monthIdx].totalCost += parseMoney(r[ATT.COST]);
+        }
+    });
+
+    const counts = stats.map(s => s.count);
+    const avgCosts = stats.map(s => s.count ? (s.totalCost / s.count).toFixed(2) : 0);
+
+    if (activityChartInstance) activityChartInstance.destroy();
+
+    activityChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: SHORT_MONTHS,
+            datasets: [{
+                label: 'Sessions',
+                data: counts,
+                backgroundColor: 'rgba(72, 141, 170, 0.6)',
+                borderColor: 'rgba(72, 141, 170, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                hoverBackgroundColor: 'rgba(72, 141, 170, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const idx = context.dataIndex;
+                            return [` Sessions: ${context.raw}`, ` Avg Cost: ${avgCosts[idx]} MVR`];
+                        }
+                    }
+                },
+                legend: { display: false }
             }
         }
     });
@@ -369,9 +454,9 @@ function renderSessionStatus(ledger) {
         const statusLabel = s.status === 'paid' ? 'Paid' : s.status === 'partial' ? 'Partial' : 'Unpaid';
         const dateLabel = `${s.date.getDate()} ${SHORT_MONTHS[s.date.getMonth()]}`;
 
-        return `<div class="fifo-card fifo-${s.status}" title="${s.dateStr} — ${statusLabel} — ${fmtMoney(s.cost)}">
+        return `<div class="fifo-card fifo-${s.status}" title="${s.dateStr} — ${statusLabel} — ${fmtMoney(s.cost || s.amount)}">
             <div class="fifo-date">${dateLabel}</div>
-            <div class="fifo-cost">${fmtMoney(s.cost)}</div>
+            <div class="fifo-cost">${fmtMoney(s.cost || s.amount)}</div>
         </div>`;
     }).join('');
 
@@ -573,6 +658,29 @@ function setupEventListeners() {
 
     $('.att-filter').on('change', () => {
          renderAttendanceTable(state.attendance.filter(r => r[ATT.NAME] === state.currentUser));
+    });
+
+    // Tab switching
+    $('.tab-btn').on('click', function() {
+        const tab = this.getAttribute('data-tab');
+        $('.tab-btn').removeClass('active');
+        $(this).addClass('active');
+        $('#tabPaymentSummary').el.classList.toggle('active', tab === 'paymentSummary');
+        $('#tabActivityOverview').el.classList.toggle('active', tab === 'activityOverview');
+
+        // Render activity chart when its tab becomes visible (canvas must be visible)
+        if (tab === 'activityOverview' && state.currentUser) {
+            const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
+            renderActivityChart(userRows);
+        }
+    });
+
+    // Activity chart year filter
+    $('#chartYearFilter').on('change', () => {
+        if (state.currentUser) {
+            const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
+            renderActivityChart(userRows);
+        }
     });
 
     $('#paymentStatusFilter').on('change', renderAllPayments);
