@@ -531,13 +531,14 @@
                 <td>${fmtMoney(parseMoney(r[4]))}</td>
                 <td>${(() => {
                     const yr = (parseDate(r[3]) || new Date(0)).getFullYear();
-                    const val = (r[6] || '').trim();
+                    const raw = (r[6] || '').trim();
+                    const isError = !raw || raw.startsWith('#');
                     if (yr < 2025) {
-                        if (!val || val === 'Non-Member') return `<span class="status-badge" style="background:#f3f4f6;color:#999;">Pre-UFA</span>`;
-                        return `<span class="status-badge status-member">${val}</span>`;
+                        if (isError || raw === 'Non-Member') return `<span class="status-badge" style="background:#f3f4f6;color:#999;">Pre-UFA</span>`;
+                        return `<span class="status-badge status-member">${raw}</span>`;
                     }
-                    if (val === 'Non-Member') return `<span class="status-badge status-non-member">Non-Member</span>`;
-                    return `<span class="status-badge status-member">${val || 'Member'}</span>`;
+                    if (raw === 'Non-Member') return `<span class="status-badge status-non-member">Non-Member</span>`;
+                    return `<span class="status-badge status-member">${isError ? 'Member' : raw}</span>`;
                 })()}</td>
             </tr>
         `).join('') : `<tr><td colspan="5" class="loading">No records found.</td></tr>`;
