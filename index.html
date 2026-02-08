@@ -158,16 +158,10 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <div class="card-title" style="margin: 0;">📊 Activity Overview</div>
               <select id="chartYearFilter" style="padding: 8px; border-radius: 8px; border: 1px solid #e1e5e9; font-size: 0.9rem; background: #f8f9fa;">
-                  <option value="2025">2025</option>
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
               </select>
           </div>
           
-          <div class="summary-grid" style="margin-bottom: 25px;">
-            <div class="summary-item neutral"><div class="summary-value" id="sessions2024">0</div><div class="summary-label">2024 Sessions</div></div>
-            <div class="summary-item neutral"><div class="summary-value" id="sessions2025">0</div><div class="summary-label">2025 Sessions</div></div>
-            <div class="summary-item neutral"><div class="summary-value" id="recentSessions">0</div><div class="summary-label">Last 30 Days</div></div>
+          <div class="summary-grid" style="margin-bottom: 25px;" id="yearSessionCards">
           </div>
 
           <div style="position: relative; height: 250px; width: 100%;">
@@ -180,7 +174,7 @@
         <div class="card-title">📅 Attendance History</div>
         <div class="filters">
             <div class="filter-group"><label class="filter-label">Month</label><select id="monthFilter" class="att-filter"><option value="all">All Months</option></select></div>
-            <div class="filter-group"><label class="filter-label">Year</label><select id="yearFilter" class="att-filter"><option value="all">All Years</option><option value="2024">2024</option><option value="2025">2025</option></select></div>
+            <div class="filter-group"><label class="filter-label">Year</label><select id="yearFilter" class="att-filter"><option value="all">All Years</option></select></div>
             <div class="filter-group"><label class="filter-label">Location</label><select id="locationFilter" class="att-filter"><option value="all">All Locations</option></select></div>
         </div>
         <div class="table-container">
@@ -355,11 +349,22 @@
         const months = [...new Set(state.attendance.map(r => r[2]))].filter(Boolean);
         const locations = [...new Set(state.attendance.map(r => r[1]))].filter(Boolean);
 
+        // Extract unique years from attendance date column (dd/mm/yyyy)
+        const years = [...new Set(state.attendance.map(r => {
+            const d = parseDate(r[3]);
+            return d ? d.getFullYear().toString() : null;
+        }).filter(Boolean))].sort((a, b) => b - a); // descending (newest first)
+
+        state.years = years;
+
         const monthOpts = months.map(m => `<option value="${m}">${m}</option>`).join('');
         const locOpts = locations.map(l => `<option value="${l}">${l}</option>`).join('');
+        const yearOpts = years.map(y => `<option value="${y}">${y}</option>`).join('');
 
         $('#monthFilter').html(`<option value="all">All Months</option>${monthOpts}`);
         $('#locationFilter').html(`<option value="all">All Locations</option>${locOpts}`);
+        $('#yearFilter').html(`<option value="all">All Years</option>${yearOpts}`);
+        $('#chartYearFilter').html(yearOpts);
     }
 
     function renderUserDashboard(userName) {
@@ -411,11 +416,19 @@
         
         $('#totalSessions').text(attRows.length);
         $('#avgCost').text(Math.round(avg) + ' MVR');
-        $('#sessions2024').text(attRows.filter(r => r[3]?.includes('2024')).length);
-        $('#sessions2025').text(attRows.filter(r => r[3]?.includes('2025')).length);
-        
+
+        // Build year session cards dynamically
         const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        $('#recentSessions').text(attRows.filter(r => parseDate(r[3]) >= thirtyDaysAgo).length);
+        const recentCount = attRows.filter(r => parseDate(r[3]) >= thirtyDaysAgo).length;
+
+        const yearCards = (state.years || []).map(y => {
+            const count = attRows.filter(r => { const d = parseDate(r[3]); return d && d.getFullYear().toString() === y; }).length;
+            return `<div class="summary-item neutral"><div class="summary-value">${count}</div><div class="summary-label">${y} Sessions</div></div>`;
+        }).join('');
+
+        $('#yearSessionCards').html(
+            yearCards + `<div class="summary-item neutral"><div class="summary-value">${recentCount}</div><div class="summary-label">Last 30 Days</div></div>`
+        );
 
         renderAttendanceTable(attRows);
         
