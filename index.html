@@ -506,13 +506,18 @@
             return true;
         });
 
+        const MONTH_ORDER = { jan:0, january:0, feb:1, february:1, mar:2, march:2, apr:3, april:3, may:4, jun:5, june:5, jul:6, july:6, aug:7, august:7, sep:8, september:8, oct:9, october:9, nov:10, november:10, dec:11, december:11 };
+
         if (state.sortBy) {
             rows.sort((a, b) => {
                 let valA, valB;
                 switch(state.sortBy) {
-                    case 'date': valA = parseDate(a[3]); valB = parseDate(b[3]); break;
+                    case 'date': valA = parseDate(a[3]) || new Date(0); valB = parseDate(b[3]) || new Date(0); break;
+                    case 'month': valA = MONTH_ORDER[(a[2] || '').toLowerCase()] ?? 99; valB = MONTH_ORDER[(b[2] || '').toLowerCase()] ?? 99; break;
+                    case 'location': valA = (a[1] || '').toLowerCase(); valB = (b[1] || '').toLowerCase(); break;
                     case 'cost': valA = parseMoney(a[4]); valB = parseMoney(b[4]); break;
-                    default: valA = a[1]; valB = b[1];
+                    case 'status': valA = (a[6] || '').toLowerCase(); valB = (b[6] || '').toLowerCase(); break;
+                    default: valA = 0; valB = 0;
                 }
                 return state.sortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
             });
