@@ -35,6 +35,8 @@ const MONTH_ORDER = {
     nov:10, november:10, dec:11, december:11
 };
 
+const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
 const CONFIG = {
     apiKey: "AIzaSyB4FKQrbrtGpBztkZVriYkEGsXlnLXHAN0",
     sheetID: "1kI6E4J0pL4lUa2NH-FYEd2rWUE7Uzsz-CnGOg68ERtc",
@@ -74,6 +76,59 @@ function getMembershipBadge(row) {
     }
     if (raw === 'Non-Member') return '<span class="status-badge status-non-member">Non-Member</span>';
     return `<span class="status-badge status-member">${isError ? 'Member' : raw}</span>`;
+}
+
+// --- Financial Ledger Engine ---
+
+function calculateFinancialLedger(userName) {
+    const summaryRow = state.summary.find(r => r[SUM.NAME] === userName);
+    const totalPaid = summaryRow ? parseMoney(summaryRow[SUM.TOTAL]) : 0;
+
+    const sessions = state.attendance
+        .filter(r => r[ATT.NAME] === userName)
+        .map(r => ({
+            date: parseDate(r[ATT.DATE]),
+            dateStr: r[ATT.DATE],
+            location: r[ATT.LOCATION],
+            month: r[ATT.MONTH],
+            cost: parseMoney(r[ATT.COST])
+        }))
+        .filter(r => r.date)
+        .sort((a, b) => a.date - b.date);
+
+    let cumulativeCost = 0;
+    sessions.forEach(s => {
+        const prev = cumulativeCost;
+        cumulativeCost += s.cost;
+        if (cumulativeCost <= totalPaid) {
+            s.status = 'paid';
+        } else if (prev < totalPaid) {
+            s.status = 'partial';
+        } else {
+            s.status = 'unpaid';
+        }
+        s.cumulativeCost = cumulativeCost;
+    });
+
+    const unpaidCount = sessions.filter(s => s.status === 'unpaid').length;
+    const partialCount = sessions.filter(s => s.status === 'partial').length;
+    const pendingCount = unpaidCount + partialCount;
+
+    return { sessions, totalPaid, cumulativeCost, unpaidCount, partialCount, pendingCount };
+}
+
+function getHealthBadge(ledger) {
+    if (ledger.sessions.length === 0) return '';
+    if (ledger.pendingCount === 0) {
+        if (ledger.totalPaid > ledger.cumulativeCost) {
+            return '<span class="health-badge health-prepaid">Status: Prepaid</span>';
+        }
+        return '<span class="health-badge health-caught-up">Status: Caught Up</span>';
+    }
+    const label = ledger.pendingCount === 1
+        ? '1 Session Pending'
+        : `${ledger.pendingCount} Sessions Pending`;
+    return `<span class="health-badge health-pending">Status: ${label}</span>`;
 }
 
 // --- Init ---
@@ -132,7 +187,6 @@ function populateFilters() {
     $('#monthFilter').html(`<option value="all">All Months</option>${monthOpts}`);
     $('#locationFilter').html(`<option value="all">All Locations</option>${locOpts}`);
     $('#yearFilter').html(`<option value="all">All Years</option>${yearOpts}`);
-    $('#chartYearFilter').html(yearOpts);
 }
 
 // --- User Dashboard ---
@@ -178,6 +232,7 @@ function renderUserDashboard(userName) {
         }
     }
 
+    // Stats
     const paidSessions = attRows.filter(r => parseMoney(r[ATT.COST]) > 0);
     const totalCost = paidSessions.reduce((acc, r) => acc + parseMoney(r[ATT.COST]), 0);
     const avg = paidSessions.length ? totalCost / paidSessions.length : 0;
@@ -185,6 +240,7 @@ function renderUserDashboard(userName) {
     $('#totalSessions').text(attRows.length);
     $('#avgCost').text(Math.round(avg) + ' MVR');
 
+    // Year session cards
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentCount = attRows.filter(r => parseDate(r[ATT.DATE]) >= thirtyDaysAgo).length;
 
@@ -197,65 +253,129 @@ function renderUserDashboard(userName) {
         yearCards + `<div class="summary-item neutral"><div class="summary-value">${recentCount}</div><div class="summary-label">Last 30 Days</div></div>`
     );
 
+    // Financial ledger + health badge
+    const ledger = calculateFinancialLedger(userName);
+    $('#healthBadge').html(getHealthBadge(ledger));
+
+    // Render new components
+    renderFinancialChart(ledger);
+    renderSessionStatus(ledger);
     renderAttendanceTable(attRows);
-    renderActivityChart(attRows);
 }
 
-// --- Chart ---
+// --- Financial Burn-Up Chart ---
 
-function renderActivityChart(rows) {
-    const ctx = document.getElementById('activityChart').getContext('2d');
-    const selectedYear = $('#chartYearFilter').val();
-
-    const stats = Array.from({length: 12}, () => ({ count: 0, totalCost: 0 }));
-
-    rows.forEach(r => {
-        const date = parseDate(r[ATT.DATE]);
-        if (date && date.getFullYear().toString() === selectedYear) {
-            const monthIdx = date.getMonth();
-            stats[monthIdx].count++;
-            stats[monthIdx].totalCost += parseMoney(r[ATT.COST]);
-        }
-    });
-
-    const counts = stats.map(s => s.count);
-    const avgCosts = stats.map(s => s.count ? (s.totalCost / s.count).toFixed(2) : 0);
+function renderFinancialChart(ledger) {
+    const ctx = document.getElementById('financialChart').getContext('2d');
 
     if (chartInstance) chartInstance.destroy();
 
+    if (ledger.sessions.length === 0) {
+        ctx.canvas.parentElement.innerHTML = '<div class="loading">No session data to chart.</div>';
+        return;
+    }
+
+    const labels = ledger.sessions.map(s => {
+        return `${s.date.getDate()} ${SHORT_MONTHS[s.date.getMonth()]} ${String(s.date.getFullYear()).slice(2)}`;
+    });
+
+    const cumulativeCosts = ledger.sessions.map(s => s.cumulativeCost);
+    const paidLine = ledger.sessions.map(() => ledger.totalPaid);
+
     chartInstance = new Chart(ctx, {
-        type: 'bar',
+        type: 'line',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            datasets: [{
-                label: 'Sessions',
-                data: counts,
-                backgroundColor: 'rgba(72, 141, 170, 0.6)',
-                borderColor: 'rgba(72, 141, 170, 1)',
-                borderWidth: 1,
-                borderRadius: 4,
-                hoverBackgroundColor: 'rgba(72, 141, 170, 0.8)'
-            }]
+            labels,
+            datasets: [
+                {
+                    label: 'Total Owed',
+                    data: cumulativeCosts,
+                    stepped: true,
+                    borderColor: 'rgb(239, 83, 80)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    pointRadius: 1.5,
+                    pointHoverRadius: 4,
+                    fill: {
+                        target: 1,
+                        above: 'rgba(239, 83, 80, 0.12)',
+                        below: 'rgba(76, 175, 80, 0.12)'
+                    }
+                },
+                {
+                    label: 'Total Paid',
+                    data: paidLine,
+                    borderColor: 'rgb(76, 175, 80)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [6, 3],
+                    pointRadius: 0,
+                    pointHoverRadius: 0,
+                    fill: false
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                x: {
+                    ticks: { autoSkip: true, maxRotation: 45, font: { size: 10 } }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) { return value + ' MVR'; }
+                    }
+                }
             },
             plugins: {
                 tooltip: {
                     callbacks: {
-                        label: function(context) {
-                            const idx = context.dataIndex;
-                            return [` Sessions: ${context.raw}`, ` Avg Cost: ${avgCosts[idx]} MVR`];
+                        title: function(items) {
+                            const idx = items[0].dataIndex;
+                            const s = ledger.sessions[idx];
+                            return `${s.dateStr} — ${s.location}`;
+                        },
+                        afterBody: function(items) {
+                            const idx = items[0].dataIndex;
+                            const s = ledger.sessions[idx];
+                            const label = s.status === 'paid' ? 'Paid' : s.status === 'partial' ? 'Partial' : 'Unpaid';
+                            return [`Session cost: ${fmtMoney(s.cost)}`, `Status: ${label}`];
                         }
                     }
                 },
-                legend: { display: false }
+                legend: { display: true, position: 'top' },
+                filler: { propagate: true }
             }
         }
     });
+}
+
+// --- FIFO Session Status Cards ---
+
+function renderSessionStatus(ledger) {
+    const container = $('#sessionStatusCards');
+
+    if (ledger.sessions.length === 0) {
+        container.html('<div style="color: #888; font-size: 0.9rem;">No sessions found.</div>');
+        return;
+    }
+
+    const recent = ledger.sessions.slice(-10);
+
+    const cards = recent.map(s => {
+        const statusLabel = s.status === 'paid' ? 'Paid' : s.status === 'partial' ? 'Partial' : 'Unpaid';
+        const dateLabel = `${s.date.getDate()} ${SHORT_MONTHS[s.date.getMonth()]}`;
+
+        return `<div class="fifo-card fifo-${s.status}" title="${s.dateStr} — ${statusLabel} — ${fmtMoney(s.cost)}">
+            <div class="fifo-date">${dateLabel}</div>
+            <div class="fifo-cost">${fmtMoney(s.cost)}</div>
+        </div>`;
+    }).join('');
+
+    container.html(cards);
 }
 
 // --- Attendance Table ---
@@ -411,7 +531,7 @@ document.addEventListener('click', async (e) => {
         try {
             await navigator.clipboard.writeText(msg);
             const oldTxt = btn.innerText;
-            btn.innerText = "✓ Copied";
+            btn.innerText = "\u2713 Copied";
             btn.style.background = "#2e7d32";
             setTimeout(() => { btn.innerText = oldTxt; btn.style.background = ""; }, 2000);
         } catch(err) { alert("Could not copy text."); }
@@ -453,13 +573,6 @@ function setupEventListeners() {
 
     $('.att-filter').on('change', () => {
          renderAttendanceTable(state.attendance.filter(r => r[ATT.NAME] === state.currentUser));
-    });
-
-    $('#chartYearFilter').on('change', () => {
-        if (state.currentUser) {
-            const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
-            renderActivityChart(userRows);
-        }
     });
 
     $('#paymentStatusFilter').on('change', renderAllPayments);

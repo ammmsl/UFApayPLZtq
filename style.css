@@ -38,8 +38,8 @@ header { text-align: center; }
 table { width: 100%; border-collapse: collapse; min-width: 600px; }
 th { background: #f8f9fa; padding: 15px 12px; text-align: left; font-weight: 600; color: #495057; border-bottom: 2px solid #e9ecef; position: sticky; top: 0; z-index: 10; cursor: pointer; }
 td { padding: 12px; border-bottom: 1px solid #e9ecef; vertical-align: middle; }
-th.sort-asc::after { content: ' ↑'; }
-th.sort-desc::after { content: ' ↓'; }
+th.sort-asc::after { content: ' \2191'; }
+th.sort-desc::after { content: ' \2193'; }
 tfoot td { font-weight: bold; background: #f8f9fa; }
 
 /* Badges & Text Helpers */
@@ -70,9 +70,35 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
 .filter-group { display: flex; flex-direction: column; gap: 5px; }
 .filter-label { font-size: 0.85rem; font-weight: 600; color: #495057; text-transform: uppercase; }
 
+/* Financial Health Badge */
+.health-badge { display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-top: 8px; }
+.health-caught-up { background: #e8f5e9; color: #2e7d32; }
+.health-prepaid { background: #e3f2fd; color: #1565c0; }
+.health-pending { background: #ffebee; color: #c62828; }
+
+/* FIFO Session Status Cards */
+.fifo-section-title { font-size: 0.85rem; font-weight: 600; color: #495057; text-transform: uppercase; margin-bottom: 10px; }
+.fifo-container { display: flex; gap: 6px; flex-wrap: wrap; }
+.fifo-card { padding: 8px 10px; border-radius: 8px; text-align: center; min-width: 58px; transition: transform 0.15s ease; }
+.fifo-card:hover { transform: translateY(-2px); }
+.fifo-date { font-weight: 600; font-size: 0.75rem; line-height: 1.3; }
+.fifo-cost { font-size: 0.7rem; opacity: 0.8; }
+.fifo-paid { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+.fifo-partial { background: #fff8e1; border: 1px solid #ffe082; color: #f57f17; }
+.fifo-unpaid { background: #ffebee; border: 1px solid #ef9a9a; color: #c62828; }
+
+/* Collapsible Attendance */
+.attendance-details { border: none; }
+.attendance-details summary { cursor: pointer; padding: 0; font-weight: 600; font-size: 1rem; color: #488daa; list-style: none; display: flex; align-items: center; gap: 8px; margin-bottom: 15px; }
+.attendance-details summary::-webkit-details-marker { display: none; }
+.attendance-details summary::before { content: '\25B6'; font-size: 0.7rem; transition: transform 0.2s ease; display: inline-block; }
+.attendance-details[open] summary::before { transform: rotate(90deg); }
+
 /* Responsive */
 @media (max-width: 768px) {
     .dashboard, .summary-grid { grid-template-columns: 1fr; }
     .search-container { flex-direction: column; align-items: stretch; }
     .filters { flex-direction: column; }
+    .fifo-container { gap: 4px; }
+    .fifo-card { min-width: 50px; padding: 6px 8px; }
 }

@@ -42,6 +42,7 @@
       <div id="personalWelcome" class="welcome-message">
         <h3 style="margin:0 0 10px 0;">Welcome back, <span id="selectedUserName"></span>!</h3>
         <div>Here's your complete payment and attendance summary</div>
+        <div id="healthBadge"></div>
       </div>
 
       <div class="dashboard">
@@ -75,45 +76,47 @@
              <div style="text-align: center;"><strong id="totalSessions" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Total Sessions</div></div>
              <div style="text-align: center;"><strong id="avgCost" style="font-size: 1.2rem; color: #488daa;">0</strong><div class="summary-label">Avg Cost</div></div>
           </div>
+
+          <div class="summary-grid" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e9ecef;" id="yearSessionCards">
+          </div>
         </div>
 
         <div class="card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-              <div class="card-title" style="margin: 0;">📊 Activity Overview</div>
-              <select id="chartYearFilter" style="padding: 8px; border-radius: 8px; border: 1px solid #e1e5e9; font-size: 0.9rem; background: #f8f9fa;">
-              </select>
+          <div class="card-title" style="margin-bottom: 15px;">📊 Financial Overview</div>
+          <div style="position: relative; height: 280px; width: 100%;">
+              <canvas id="financialChart"></canvas>
           </div>
 
-          <div class="summary-grid" style="margin-bottom: 25px;" id="yearSessionCards">
-          </div>
-
-          <div style="position: relative; height: 250px; width: 100%;">
-              <canvas id="activityChart"></canvas>
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e9ecef;">
+            <div class="fifo-section-title">Recent Sessions</div>
+            <div id="sessionStatusCards" class="fifo-container"></div>
           </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">📅 Attendance History</div>
-        <div class="filters">
-            <div class="filter-group"><label class="filter-label">Month</label><select id="monthFilter" class="att-filter"><option value="all">All Months</option></select></div>
-            <div class="filter-group"><label class="filter-label">Year</label><select id="yearFilter" class="att-filter"><option value="all">All Years</option></select></div>
-            <div class="filter-group"><label class="filter-label">Location</label><select id="locationFilter" class="att-filter"><option value="all">All Locations</option></select></div>
-        </div>
-        <div class="table-container">
-          <table id="attendanceTable">
-            <thead>
-              <tr>
-                <th data-sort="date">Date</th>
-                <th data-sort="location">Location</th>
-                <th data-sort="month">Month</th>
-                <th data-sort="cost">Cost</th>
-                <th data-sort="status">Membership</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <details class="attendance-details">
+          <summary>View Full Attendance History</summary>
+          <div class="filters">
+              <div class="filter-group"><label class="filter-label">Month</label><select id="monthFilter" class="att-filter"><option value="all">All Months</option></select></div>
+              <div class="filter-group"><label class="filter-label">Year</label><select id="yearFilter" class="att-filter"><option value="all">All Years</option></select></div>
+              <div class="filter-group"><label class="filter-label">Location</label><select id="locationFilter" class="att-filter"><option value="all">All Locations</option></select></div>
+          </div>
+          <div class="table-container">
+            <table id="attendanceTable">
+              <thead>
+                <tr>
+                  <th data-sort="date">Date</th>
+                  <th data-sort="location">Location</th>
+                  <th data-sort="month">Month</th>
+                  <th data-sort="cost">Cost</th>
+                  <th data-sort="status">Membership</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
       </div>
     </div>
 
