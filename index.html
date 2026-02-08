@@ -529,7 +529,16 @@
                 <td>${r[1]}</td>
                 <td>${r[2]}</td>
                 <td>${fmtMoney(parseMoney(r[4]))}</td>
-                <td>${(() => { const yr = (parseDate(r[3]) || new Date(0)).getFullYear(); const val = r[6]; if (val) return `<span class="status-badge ${val === 'Non-Member' ? 'status-non-member' : 'status-member'}">${val}</span>`; if (yr < 2025) return `<span class="status-badge" style="background:#f3f4f6;color:#999;">N/A</span>`; return `<span class="status-badge" style="background:#fff8e1;color:#f57f17;">Unknown</span>`; })()}</td>
+                <td>${(() => {
+                    const yr = (parseDate(r[3]) || new Date(0)).getFullYear();
+                    const val = (r[6] || '').trim();
+                    if (yr < 2025) {
+                        if (!val || val === 'Non-Member') return `<span class="status-badge" style="background:#f3f4f6;color:#999;">Pre-UFA</span>`;
+                        return `<span class="status-badge status-member">${val}</span>`;
+                    }
+                    if (!val) return `<span class="status-badge" style="background:#fff8e1;color:#f57f17;">Unknown</span>`;
+                    return `<span class="status-badge ${val === 'Non-Member' ? 'status-non-member' : 'status-member'}">${val}</span>`;
+                })()}</td>
             </tr>
         `).join('') : `<tr><td colspan="5" class="loading">No records found.</td></tr>`;
 
