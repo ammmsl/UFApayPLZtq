@@ -536,8 +536,8 @@
                         if (!val || val === 'Non-Member') return `<span class="status-badge" style="background:#f3f4f6;color:#999;">Pre-UFA</span>`;
                         return `<span class="status-badge status-member">${val}</span>`;
                     }
-                    if (!val) return `<span class="status-badge" style="background:#fff8e1;color:#f57f17;">Unknown</span>`;
-                    return `<span class="status-badge ${val === 'Non-Member' ? 'status-non-member' : 'status-member'}">${val}</span>`;
+                    if (val === 'Non-Member') return `<span class="status-badge status-non-member">Non-Member</span>`;
+                    return `<span class="status-badge status-member">${val || 'Member'}</span>`;
                 })()}</td>
             </tr>
         `).join('') : `<tr><td colspan="5" class="loading">No records found.</td></tr>`;
