@@ -408,13 +408,7 @@ function renderFinancialChart(ledger) {
     const cumCosts = ledger.timeline.map(e => e.cumulativeCost);
     const cumPaids = ledger.timeline.map(e => e.cumulativePaid);
 
-    // Create arrays for point styling - make payment events more visible
-    const costPointStyles = ledger.timeline.map(e => e.type === 'payment' ? 'rectRot' : 'circle');
-    const costPointRadii = ledger.timeline.map(e => e.type === 'payment' ? 6 : 2);
-    const costPointColors = ledger.timeline.map(e =>
-        e.type === 'payment' ? 'rgb(76, 175, 80)' : 'rgb(239, 83, 80)'
-    );
-
+    // Payment markers only on "Total Paid" line (stars for payments, circles for costs)
     const paidPointStyles = ledger.timeline.map(e => e.type === 'payment' ? 'star' : 'circle');
     const paidPointRadii = ledger.timeline.map(e => e.type === 'payment' ? 7 : 2);
     const paidPointColors = ledger.timeline.map(e =>
@@ -433,11 +427,11 @@ function renderFinancialChart(ledger) {
                     borderColor: 'rgb(239, 83, 80)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
-                    pointStyle: costPointStyles,
-                    pointRadius: costPointRadii,
-                    pointBackgroundColor: costPointColors,
-                    pointBorderColor: costPointColors,
-                    pointHoverRadius: 8,
+                    pointStyle: 'circle',
+                    pointRadius: 2,
+                    pointBackgroundColor: 'rgb(239, 83, 80)',
+                    pointBorderColor: 'rgb(239, 83, 80)',
+                    pointHoverRadius: 6,
                     fill: {
                         target: 1,
                         above: 'rgba(239, 83, 80, 0.12)',
