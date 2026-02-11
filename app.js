@@ -387,14 +387,36 @@ function renderFinancialChart(ledger) {
 
     if (financialChartInstance) financialChartInstance.destroy();
 
+    // Don't show chart if no data or if both totals are 0
     if (ledger.timeline.length === 0) {
         ctx.canvas.parentElement.innerHTML = '<div class="loading">No session data to chart.</div>';
+        return;
+    }
+
+    const finalCost = ledger.cumulativeCost || 0;
+    const finalPaid = ledger.cumulativePaid || 0;
+
+    if (finalCost === 0 && finalPaid === 0) {
+        ctx.canvas.parentElement.innerHTML = '<div class="loading">No financial activity yet.</div>';
         return;
     }
 
     const labels = ledger.timeline.map(e => fmtDateShort(e.date));
     const cumCosts = ledger.timeline.map(e => e.cumulativeCost);
     const cumPaids = ledger.timeline.map(e => e.cumulativePaid);
+
+    // Create arrays for point styling - make payment events more visible
+    const costPointStyles = ledger.timeline.map(e => e.type === 'payment' ? 'rectRot' : 'circle');
+    const costPointRadii = ledger.timeline.map(e => e.type === 'payment' ? 6 : 2);
+    const costPointColors = ledger.timeline.map(e =>
+        e.type === 'payment' ? 'rgb(76, 175, 80)' : 'rgb(239, 83, 80)'
+    );
+
+    const paidPointStyles = ledger.timeline.map(e => e.type === 'payment' ? 'star' : 'circle');
+    const paidPointRadii = ledger.timeline.map(e => e.type === 'payment' ? 7 : 2);
+    const paidPointColors = ledger.timeline.map(e =>
+        e.type === 'payment' ? 'rgb(46, 125, 50)' : 'rgb(76, 175, 80)'
+    );
 
     financialChartInstance = new Chart(ctx, {
         type: 'line',
@@ -408,8 +430,11 @@ function renderFinancialChart(ledger) {
                     borderColor: 'rgb(239, 83, 80)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
-                    pointRadius: 1.5,
-                    pointHoverRadius: 4,
+                    pointStyle: costPointStyles,
+                    pointRadius: costPointRadii,
+                    pointBackgroundColor: costPointColors,
+                    pointBorderColor: costPointColors,
+                    pointHoverRadius: 8,
                     fill: {
                         target: 1,
                         above: 'rgba(239, 83, 80, 0.12)',
@@ -423,8 +448,11 @@ function renderFinancialChart(ledger) {
                     borderColor: 'rgb(76, 175, 80)',
                     backgroundColor: 'transparent',
                     borderWidth: 2,
-                    pointRadius: 1.5,
-                    pointHoverRadius: 4,
+                    pointStyle: paidPointStyles,
+                    pointRadius: paidPointRadii,
+                    pointBackgroundColor: paidPointColors,
+                    pointBorderColor: paidPointColors,
+                    pointHoverRadius: 8,
                     fill: false
                 }
             ]
@@ -435,11 +463,19 @@ function renderFinancialChart(ledger) {
             interaction: { mode: 'index', intersect: false },
             scales: {
                 x: {
-                    ticks: { autoSkip: true, maxRotation: 45, font: { size: 10 } }
+                    ticks: {
+                        autoSkip: true,
+                        maxRotation: 45,
+                        minRotation: 0,
+                        font: { size: 9 } // Smaller for mobile
+                    }
                 },
                 y: {
                     beginAtZero: true,
-                    ticks: { callback: function(value) { return value + ' MVR'; } }
+                    ticks: {
+                        callback: function(value) { return value + ' MVR'; },
+                        font: { size: 10 }
+                    }
                 }
             },
             plugins: {
@@ -449,7 +485,7 @@ function renderFinancialChart(ledger) {
                             const idx = items[0].dataIndex;
                             const e = ledger.timeline[idx];
                             if (e.type === 'cost') return `${e.dateStr} — ${e.location}`;
-                            return `${e.dateStr} — Payment`;
+                            return `💰 ${e.dateStr} — Payment`;
                         },
                         afterBody: function(items) {
                             const idx = items[0].dataIndex;
@@ -459,7 +495,15 @@ function renderFinancialChart(ledger) {
                         }
                     }
                 },
-                legend: { display: true, position: 'top' },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 11 }, // Smaller for mobile
+                        padding: 10,
+                        usePointStyle: true
+                    }
+                },
                 filler: { propagate: true }
             }
         }
