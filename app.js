@@ -189,20 +189,12 @@ async function initApp() {
     try {
         $('#loadingState').show();
 
-        // Fetch main data (critical)
+        // Fetch main data only (removed metadata fetch - was causing 100% API errors)
         const [summaryRes, attendanceRes, paymentsRes] = await Promise.all([
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`),
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`),
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`)
         ]);
-
-        // Fetch metadata (non-critical, silently use fallback if it fails)
-        let metaRes = null;
-        try {
-            metaRes = await fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`, 1, 500);
-        } catch (metaError) {
-            // Silently fail - metadata is non-critical
-        }
 
         // Validate API responses
         if (!summaryRes.values || summaryRes.values.length < 2) {
@@ -233,9 +225,8 @@ async function initApp() {
             throw new Error(`No valid data found. Summary: ${state.summary.length} rows, Attendance: ${state.attendance.length} rows`);
         }
 
-        const lastUpdate = metaRes?.properties?.lastUpdateTime
-            ? new Date(metaRes.properties.lastUpdateTime).toLocaleDateString()
-            : new Date().toLocaleDateString();
+        // Use current date for "Updated" timestamp (removed API call to avoid quota issues)
+        const lastUpdate = new Date().toLocaleDateString();
         $('#lastUpdated').text(`Updated ${lastUpdate}`);
 
         populateFilters();
