@@ -41,6 +41,28 @@ header { text-align: center; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
+/* Year Buttons */
+.year-btn {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.year-btn:hover {
+    background: #e9ecef;
+    border-color: #488daa;
+}
+.year-btn.active {
+    background: linear-gradient(135deg, #488daa, #357a96);
+    color: white;
+    border-color: #488daa;
+}
+
 /* Tables */
 .table-container { max-height: 400px; overflow-y: auto; border-radius: 12px; border: 1px solid #e1e5e9; }
 table { width: 100%; border-collapse: collapse; min-width: 600px; }
@@ -110,4 +132,35 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
     .fifo-container { gap: 4px; }
     .fifo-card { min-width: 50px; padding: 6px 8px; }
     .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+
+    /* Make card items more compact on mobile */
+    .summary-item {
+        padding: 12px;
+    }
+    .summary-value {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+    .summary-label {
+        font-size: 0.7rem;
+    }
+    .summary-grid {
+        grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+        gap: 10px;
+    }
+
+    /* Year buttons more compact on mobile */
+    .year-btn {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    /* Card padding reduction */
+    .card {
+        padding: 20px;
+    }
+
+    header {
+        padding: 20px;
+    }
 }

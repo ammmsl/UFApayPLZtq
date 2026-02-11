@@ -269,7 +269,7 @@ function populateFilters() {
     $('#monthFilter').html(`<option value="all">All Months</option>${monthOpts}`);
     $('#locationFilter').html(`<option value="all">All Locations</option>${locOpts}`);
     $('#yearFilter').html(`<option value="all">All Years</option>${yearOpts}`);
-    $('#chartYearFilter').html(yearOpts);
+    // chartYearFilter removed - now using year buttons instead
 }
 
 // --- User Dashboard ---
@@ -326,18 +326,44 @@ function renderUserDashboard(userName) {
     $('#totalSessions').text(attRows.length);
     $('#avgCost').text(Math.round(avg) + ' MVR');
 
-    // Year session cards for Activity tab
+    // Year session cards for Activity tab - only show years with sessions
     const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const recentCount = attRows.filter(r => parseDate(r[ATT.DATE]) >= thirtyDaysAgo).length;
 
-    const yearCards = (state.years || []).map(y => {
+    // Calculate sessions per year and filter out years with 0 sessions
+    const yearData = (state.years || []).map(y => {
         const count = attRows.filter(r => { const d = parseDate(r[ATT.DATE]); return d && d.getFullYear().toString() === y; }).length;
-        return `<div class="summary-item neutral"><div class="summary-value">${count}</div><div class="summary-label">${y} Sessions</div></div>`;
-    }).join('');
+        return { year: y, count };
+    }).filter(item => item.count > 0); // Only include years with sessions
+
+    const yearCards = yearData.map(item =>
+        `<div class="summary-item neutral"><div class="summary-value">${item.count}</div><div class="summary-label">${item.year} Sessions</div></div>`
+    ).join('');
 
     $('#yearSessionCards').html(
         yearCards + `<div class="summary-item neutral"><div class="summary-value">${recentCount}</div><div class="summary-label">Last 30 Days</div></div>`
     );
+
+    // Generate year buttons (only for years with sessions)
+    if (yearData.length > 0) {
+        const firstYear = yearData[0].year; // Default to first available year
+        const yearButtons = yearData.map(item =>
+            `<button class="year-btn${item.year === firstYear ? ' active' : ''}" data-year="${item.year}">${item.year}</button>`
+        ).join('');
+        $('#chartYearButtons').html(yearButtons);
+
+        // Set up click events for year buttons
+        document.querySelectorAll('.year-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                if (state.currentUser) {
+                    const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
+                    renderActivityChart(userRows);
+                }
+            });
+        });
+    }
 
     // Financial ledger + health badge
     const ledger = calculateFinancialLedger(userName);
@@ -444,7 +470,7 @@ function renderFinancialChart(ledger) {
 
 function renderActivityChart(attRows) {
     const ctx = document.getElementById('activityChart').getContext('2d');
-    const selectedYear = $('#chartYearFilter').val();
+    const selectedYear = document.querySelector('.year-btn.active')?.dataset.year || new Date().getFullYear().toString();
 
     const stats = Array.from({length: 12}, () => ({ count: 0, totalCost: 0 }));
 
@@ -574,6 +600,12 @@ function renderAttendanceTable(data) {
     });
 
     const sort = state.attendanceSort;
+    // Default sort: most recent first (if no sort applied yet)
+    if (!sort.col) {
+        sort.col = 'date';
+        sort.asc = false; // Descending (most recent first)
+    }
+
     if (sort.col) {
         rows.sort((a, b) => {
             let valA, valB;
@@ -776,13 +808,7 @@ function setupEventListeners() {
         }
     });
 
-    // Activity chart year filter
-    $('#chartYearFilter').on('change', () => {
-        if (state.currentUser) {
-            const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
-            renderActivityChart(userRows);
-        }
-    });
+    // Year filter now handled by year button clicks (see renderUserDashboard)
 
     $('#paymentStatusFilter').on('change', renderAllPayments);
     $('#neverPaidToggle').on('change', renderAllPayments);
