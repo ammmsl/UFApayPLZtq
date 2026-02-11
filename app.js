@@ -196,30 +196,41 @@ async function initApp() {
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`)
         ]);
 
-        // Fetch metadata (non-critical, use fallback if it fails)
+        // Fetch metadata (non-critical, silently use fallback if it fails)
         let metaRes = null;
         try {
             metaRes = await fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`, 1, 500);
         } catch (metaError) {
-            console.warn('Could not fetch metadata (using current time):', metaError.message);
+            // Silently fail - metadata is non-critical
         }
 
         // Validate API responses
         if (!summaryRes.values || summaryRes.values.length < 2) {
+            console.error('Summary data issue:', summaryRes);
             throw new Error("Invalid or empty summary data from Google Sheets");
         }
         if (!attendanceRes.values || attendanceRes.values.length < 2) {
+            console.error('Attendance data issue:', attendanceRes);
             throw new Error("Invalid or empty attendance data from Google Sheets");
         }
 
-        // Process and validate data structure
-        state.summary = summaryRes.values.slice(1).filter(row => row && row.length >= 10);
-        state.attendance = attendanceRes.values.slice(1).filter(row => row && row.length >= 7);
-        state.payments = (paymentsRes.values || []).slice(1).filter(row => row && row.length >= 10);
+        // Process data (be more lenient with row validation)
+        const rawSummary = summaryRes.values.slice(1);
+        const rawAttendance = attendanceRes.values.slice(1);
+        const rawPayments = (paymentsRes.values || []).slice(1);
+
+        console.log(`Raw data counts - Summary: ${rawSummary.length}, Attendance: ${rawAttendance.length}, Payments: ${rawPayments.length}`);
+
+        // Filter out completely empty rows, but be lenient with column count
+        state.summary = rawSummary.filter(row => row && row.length > 0 && row[SUM.NAME]);
+        state.attendance = rawAttendance.filter(row => row && row.length > 0 && row[ATT.NAME]);
+        state.payments = rawPayments.filter(row => row && row.length > 0);
         state.users = [...new Set(state.summary.map(r => r[SUM.NAME]))].filter(Boolean).sort();
 
+        console.log(`Filtered data counts - Summary: ${state.summary.length}, Attendance: ${state.attendance.length}, Payments: ${state.payments.length}`);
+
         if (state.summary.length === 0 || state.attendance.length === 0) {
-            throw new Error("No valid data found in Google Sheets");
+            throw new Error(`No valid data found. Summary: ${state.summary.length} rows, Attendance: ${state.attendance.length} rows`);
         }
 
         const lastUpdate = metaRes?.properties?.lastUpdateTime
@@ -239,8 +250,13 @@ async function initApp() {
         }
 
     } catch (e) {
-        console.error(e);
-        $('#loadingState').html(`<div class="text-red">⚠️ Error loading data. Please refresh.</div>`);
+        console.error('App initialization error:', e);
+        $('#loadingState').html(`
+            <div class="text-red">
+                ⚠️ Error loading data: ${e.message}<br>
+                <small>Please refresh the page or contact support if the issue persists.</small>
+            </div>
+        `);
     }
 }
 
