@@ -189,12 +189,20 @@ async function initApp() {
     try {
         $('#loadingState').show();
 
-        const [summaryRes, attendanceRes, paymentsRes, metaRes] = await Promise.all([
+        // Fetch main data (critical)
+        const [summaryRes, attendanceRes, paymentsRes] = await Promise.all([
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`),
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`),
-            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`),
-            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`)
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`)
         ]);
+
+        // Fetch metadata (non-critical, use fallback if it fails)
+        let metaRes = null;
+        try {
+            metaRes = await fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`, 1, 500);
+        } catch (metaError) {
+            console.warn('Could not fetch metadata (using current time):', metaError.message);
+        }
 
         // Validate API responses
         if (!summaryRes.values || summaryRes.values.length < 2) {
@@ -214,7 +222,7 @@ async function initApp() {
             throw new Error("No valid data found in Google Sheets");
         }
 
-        const lastUpdate = metaRes.properties?.lastUpdateTime
+        const lastUpdate = metaRes?.properties?.lastUpdateTime
             ? new Date(metaRes.properties.lastUpdateTime).toLocaleDateString()
             : new Date().toLocaleDateString();
         $('#lastUpdated').text(`Updated ${lastUpdate}`);
