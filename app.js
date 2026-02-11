@@ -97,7 +97,10 @@ function getMembershipBadge(row) {
 // --- Financial Ledger Engine ---
 
 function calculateFinancialLedger(userName) {
-    // Cost events from attendance
+    // Financial tracking started July 1st, 2024 - only include data from then onwards
+    const trackingStartDate = new Date(2024, 6, 1); // July 1, 2024 (month is 0-indexed)
+
+    // Cost events from attendance (only from tracking start date)
     const costEvents = state.attendance
         .filter(r => r[ATT.NAME] === userName)
         .map(r => ({
@@ -108,9 +111,9 @@ function calculateFinancialLedger(userName) {
             type: 'cost',
             amount: parseMoney(r[ATT.COST])
         }))
-        .filter(r => r.date);
+        .filter(r => r.date && r.date >= trackingStartDate); // Filter by tracking start date
 
-    // Payment events from Payments sheet
+    // Payment events from Payments sheet (only from tracking start date)
     const payEvents = (state.payments || [])
         .filter(r => r[PAY.NAME] === userName)
         .map(r => ({
@@ -120,7 +123,7 @@ function calculateFinancialLedger(userName) {
             amount: parseMoney(r[PAY.AMOUNT]),
             reference: r[PAY.REFERENCE] || ''
         }))
-        .filter(r => r.date && r.amount > 0);
+        .filter(r => r.date && r.amount > 0 && r.date >= trackingStartDate); // Filter by tracking start date
 
     // Unified timeline sorted by date
     const timeline = [...costEvents, ...payEvents].sort((a, b) => a.date - b.date);
