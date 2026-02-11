@@ -60,12 +60,24 @@ let activityChartInstance = null;
 
 // --- Utilities ---
 
-const fmtMoney = (amt) => `${Math.abs(parseFloat(amt) || 0).toFixed(2)} MVR`;
+const fmtMoney = (amt) => `${(parseFloat(amt) || 0).toFixed(2)} MVR`;
 const parseMoney = (str) => parseFloat(String(str).replace(/[^\d.-]/g, '')) || 0;
 const parseDate = (str) => {
-    if (!str) return null;
-    const [d, m, y] = str.trim().split('/');
-    return new Date(y, m - 1, d);
+    if (!str || typeof str !== 'string') return null;
+
+    const parts = str.trim().split('/');
+    if (parts.length !== 3) return null;
+
+    const [d, m, y] = parts.map(p => parseInt(p, 10));
+    if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+
+    // Validate the date is real (catches invalid dates like 32/13/2024)
+    const date = new Date(y, m - 1, d);
+    if (date.getDate() !== d || date.getMonth() !== m - 1 || date.getFullYear() !== y) {
+        return null;
+    }
+
+    return date;
 };
 const fmtDateShort = (d) => `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`;
 
@@ -155,6 +167,22 @@ function getHealthBadge(ledger) {
     return `<span class="health-badge health-pending">Status: ${label}</span>`;
 }
 
+// --- Network Utilities ---
+
+async function fetchWithRetry(url, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            return await response.json();
+        } catch (e) {
+            if (i === retries - 1) throw e; // Last attempt failed
+            console.warn(`Fetch attempt ${i + 1} failed, retrying in ${delay * (i + 1)}ms...`);
+            await new Promise(r => setTimeout(r, delay * (i + 1)));
+        }
+    }
+}
+
 // --- Init ---
 
 async function initApp() {
@@ -162,16 +190,29 @@ async function initApp() {
         $('#loadingState').show();
 
         const [summaryRes, attendanceRes, paymentsRes, metaRes] = await Promise.all([
-            fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`).then(r=>r.json()),
-            fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`).then(r=>r.json()),
-            fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`).then(r=>r.json()),
-            fetch(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`).then(r=>r.json())
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`),
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`),
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`),
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}?key=${CONFIG.apiKey}&fields=properties.lastUpdateTime`)
         ]);
 
-        state.summary = summaryRes.values.slice(1);
-        state.attendance = attendanceRes.values.slice(1);
-        state.payments = (paymentsRes.values || []).slice(1);
+        // Validate API responses
+        if (!summaryRes.values || summaryRes.values.length < 2) {
+            throw new Error("Invalid or empty summary data from Google Sheets");
+        }
+        if (!attendanceRes.values || attendanceRes.values.length < 2) {
+            throw new Error("Invalid or empty attendance data from Google Sheets");
+        }
+
+        // Process and validate data structure
+        state.summary = summaryRes.values.slice(1).filter(row => row && row.length >= 10);
+        state.attendance = attendanceRes.values.slice(1).filter(row => row && row.length >= 7);
+        state.payments = (paymentsRes.values || []).slice(1).filter(row => row && row.length >= 10);
         state.users = [...new Set(state.summary.map(r => r[SUM.NAME]))].filter(Boolean).sort();
+
+        if (state.summary.length === 0 || state.attendance.length === 0) {
+            throw new Error("No valid data found in Google Sheets");
+        }
 
         const lastUpdate = metaRes.properties?.lastUpdateTime
             ? new Date(metaRes.properties.lastUpdateTime).toLocaleDateString()
@@ -241,7 +282,7 @@ function renderUserDashboard(userName) {
         if (pending > 0) {
             $('#pendingActionArea').html(`
                 <div style="background: #fff0f0; padding: 15px; border-radius: 12px; border: 1px solid #ffcdd2; display: flex; align-items: center; justify-content: center; gap: 20px;">
-                    <div style="flex-shrink: 0; cursor: pointer;" onclick="$('#qrModal').css('display', 'flex')">
+                    <div class="qr-thumbnail" style="flex-shrink: 0; cursor: pointer;">
                         <img src="payment_qr.png" alt="Scan to Pay" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 1px solid #eee; display: block;">
                         <div style="font-size: 0.7rem; color: #666; text-align: center; margin-top: 4px;">(Click to Enlarge)</div>
                     </div>
@@ -254,6 +295,9 @@ function renderUserDashboard(userName) {
                     </div>
                 </div>
             `).show();
+
+            // Add click event for QR thumbnail
+            $('.qr-thumbnail').on('click', () => $('#qrModal').css('display', 'flex'));
         } else {
             $('#pendingActionArea').hide();
         }
@@ -407,32 +451,69 @@ function renderActivityChart(attRows) {
         type: 'bar',
         data: {
             labels: SHORT_MONTHS,
-            datasets: [{
-                label: 'Sessions',
-                data: counts,
-                backgroundColor: 'rgba(72, 141, 170, 0.6)',
-                borderColor: 'rgba(72, 141, 170, 1)',
-                borderWidth: 1,
-                borderRadius: 4,
-                hoverBackgroundColor: 'rgba(72, 141, 170, 0.8)'
-            }]
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Sessions',
+                    data: counts,
+                    backgroundColor: 'rgba(72, 141, 170, 0.6)',
+                    borderColor: 'rgba(72, 141, 170, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    hoverBackgroundColor: 'rgba(72, 141, 170, 0.8)',
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'line',
+                    label: 'Avg Cost (MVR)',
+                    data: avgCosts,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             scales: {
-                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    ticks: { stepSize: 1 },
+                    title: { display: true, text: 'Sessions' }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Avg Cost (MVR)' }
+                }
             },
             plugins: {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const idx = context.dataIndex;
-                            return [` Sessions: ${context.raw}`, ` Avg Cost: ${avgCosts[idx]} MVR`];
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            if (label.includes('Cost')) {
+                                return ` ${label}: ${value} MVR`;
+                            }
+                            return ` ${label}: ${value}`;
                         }
                     }
                 },
-                legend: { display: false }
+                legend: { display: true, position: 'top' }
             }
         }
     });
@@ -537,7 +618,7 @@ function renderAllPayments() {
         }
 
         if (statusFilter === 'prepaid') return pre > 0;
-        if (statusFilter === 'balanced') return (pre - pend) === 0;
+        if (statusFilter === 'balanced') return Math.abs(pre - pend) < 0.01; // Floating point tolerance
         return true;
     });
 
@@ -633,10 +714,15 @@ function setupEventListeners() {
         const matches = state.users.filter(u => u.toLowerCase().includes(val)).slice(0, 10);
         if (matches.length) {
             const html = matches.map(name =>
-                `<button class="btn btn-secondary suggestion-btn" onclick="selectUser('${name}')">${name}</button>`
+                `<button class="btn btn-secondary suggestion-btn" data-user-name="${name}">${name}</button>`
             ).join('');
             $('#suggestionList').html(html);
             $('#searchSuggestions').show();
+
+            // Add click events for suggestion buttons
+            document.querySelectorAll('.suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectUser(btn.dataset.userName));
+            });
         } else {
             $('#searchSuggestions').hide();
         }
