@@ -202,8 +202,10 @@ function getHealthBadge(ledger) {
 
 // --- Admin Metrics Calculations ---
 
-function calculateAdminMetrics() {
+function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     const metrics = {};
+    metrics.chartTimePeriod = chartTimePeriod;
+    metrics.chartBinning = chartBinning;
 
     // 1. Total Outstanding Receivables (sum of all pending)
     metrics.totalPending = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.PENDING]), 0);
