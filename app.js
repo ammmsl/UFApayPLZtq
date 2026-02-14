@@ -52,11 +52,16 @@ let state = {
     years: [],
     currentUser: null,
     attendanceSort: { col: null, asc: true },
-    paymentSort: { col: null, asc: true }
+    paymentSort: { col: null, asc: true },
+    isAdminAuthenticated: false
 };
 
 let financialChartInstance = null;
 let activityChartInstance = null;
+let adminRevenueChartInstance = null;
+
+const ADMIN_PASSWORD = "6769";
+const ADMIN_AUTH_KEY = "ufaAdminAuth";
 
 // --- Utilities ---
 
@@ -92,6 +97,31 @@ function getMembershipBadge(row) {
     }
     if (raw === 'Non-Member') return '<span class="status-badge status-non-member">Non-Member</span>';
     return `<span class="status-badge status-member">${isError ? 'Member' : raw}</span>`;
+}
+
+// --- Admin Authentication ---
+
+function checkAdminAuth() {
+    const stored = localStorage.getItem(ADMIN_AUTH_KEY);
+    if (stored === ADMIN_PASSWORD) {
+        state.isAdminAuthenticated = true;
+        return true;
+    }
+    return false;
+}
+
+function setAdminAuth(password) {
+    if (password === ADMIN_PASSWORD) {
+        localStorage.setItem(ADMIN_AUTH_KEY, password);
+        state.isAdminAuthenticated = true;
+        return true;
+    }
+    return false;
+}
+
+function clearAdminAuth() {
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+    state.isAdminAuthenticated = false;
 }
 
 // --- Financial Ledger Engine ---
@@ -170,6 +200,192 @@ function getHealthBadge(ledger) {
     return `<span class="health-badge health-pending">Status: ${label}</span>`;
 }
 
+// --- Admin Metrics Calculations ---
+
+function calculateAdminMetrics() {
+    const metrics = {};
+
+    // 1. Total Outstanding Receivables (sum of all pending)
+    metrics.totalPending = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.PENDING]), 0);
+
+    // 2. Total Prepaid Liability (sum of all prepaid)
+    metrics.totalPrepaid = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.PREPAY]), 0);
+
+    // 3. Net Association Liquidity (total collected)
+    metrics.netLiquidity = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.TOTAL]), 0);
+
+    // 4. Active Players (attended in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const activePlayers = new Set();
+    state.attendance.forEach(r => {
+        const date = parseDate(r[ATT.DATE]);
+        if (date && date >= thirtyDaysAgo) {
+            activePlayers.add(r[ATT.NAME]);
+        }
+    });
+    metrics.activePlayers = activePlayers.size;
+
+    // 5. Average Attendance per Session
+    const sessionDates = [...new Set(state.attendance.map(r => r[ATT.DATE]))];
+    metrics.avgAttendance = sessionDates.length > 0
+        ? (state.attendance.length / sessionDates.length).toFixed(1)
+        : 0;
+
+    // 6. Player Retention Rate (last 30 days vs previous 30 days)
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const previousPeriodPlayers = new Set();
+    state.attendance.forEach(r => {
+        const date = parseDate(r[ATT.DATE]);
+        if (date && date >= sixtyDaysAgo && date < thirtyDaysAgo) {
+            previousPeriodPlayers.add(r[ATT.NAME]);
+        }
+    });
+
+    if (previousPeriodPlayers.size > 0) {
+        const retainedCount = [...previousPeriodPlayers].filter(p => activePlayers.has(p)).length;
+        metrics.retentionRate = ((retainedCount / previousPeriodPlayers.size) * 100).toFixed(0);
+    } else {
+        metrics.retentionRate = 0;
+    }
+
+    // 7. Payment Velocity (avg days between session and payment)
+    let totalDays = 0;
+    let paidSessionCount = 0;
+
+    state.users.forEach(userName => {
+        const userAttendance = state.attendance.filter(r => r[ATT.NAME] === userName);
+        const userPayments = state.payments.filter(r => r[PAY.NAME] === userName);
+
+        userAttendance.forEach(att => {
+            const attDate = parseDate(att[ATT.DATE]);
+            if (!attDate) return;
+
+            // Find first payment after this session
+            const nextPayment = userPayments.find(pay => {
+                const payDate = parseDate(pay[PAY.DATE]);
+                return payDate && payDate >= attDate;
+            });
+
+            if (nextPayment) {
+                const payDate = parseDate(nextPayment[PAY.DATE]);
+                const daysDiff = Math.floor((payDate - attDate) / (1000 * 60 * 60 * 24));
+                totalDays += daysDiff;
+                paidSessionCount++;
+            }
+        });
+    });
+
+    metrics.paymentVelocity = paidSessionCount > 0
+        ? Math.round(totalDays / paidSessionCount)
+        : 0;
+
+    // 8. Top 10 Debtors
+    const debtors = state.summary
+        .map(r => ({
+            name: r[SUM.NAME],
+            pending: parseMoney(r[SUM.PENDING])
+        }))
+        .filter(d => d.pending > 0)
+        .sort((a, b) => b.pending - a.pending)
+        .slice(0, 10);
+    metrics.topDebtors = debtors;
+
+    // 9. New Player Acquisition (first-time players this month)
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const newPlayersThisMonth = new Set();
+
+    state.users.forEach(userName => {
+        const userSessions = state.attendance
+            .filter(r => r[ATT.NAME] === userName)
+            .map(r => ({ date: parseDate(r[ATT.DATE]), dateStr: r[ATT.DATE] }))
+            .filter(s => s.date)
+            .sort((a, b) => a.date - b.date);
+
+        if (userSessions.length > 0) {
+            const firstSession = userSessions[0].date;
+            if (firstSession.getMonth() === currentMonth && firstSession.getFullYear() === currentYear) {
+                newPlayersThisMonth.add(userName);
+            }
+        }
+    });
+    metrics.newPlayers = newPlayersThisMonth.size;
+
+    // 10. Revenue Trend (this week vs last week)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    let thisWeekRevenue = 0;
+    let lastWeekRevenue = 0;
+
+    state.payments.forEach(r => {
+        const payDate = parseDate(r[PAY.DATE]);
+        if (!payDate) return;
+        const amount = parseMoney(r[PAY.AMOUNT]);
+
+        if (payDate >= sevenDaysAgo) {
+            thisWeekRevenue += amount;
+        } else if (payDate >= fourteenDaysAgo && payDate < sevenDaysAgo) {
+            lastWeekRevenue += amount;
+        }
+    });
+
+    if (lastWeekRevenue > 0) {
+        const percentChange = ((thisWeekRevenue - lastWeekRevenue) / lastWeekRevenue * 100).toFixed(0);
+        metrics.revenueTrend = percentChange >= 0 ? `+${percentChange}%` : `${percentChange}%`;
+    } else {
+        metrics.revenueTrend = thisWeekRevenue > 0 ? "+100%" : "--";
+    }
+
+    // 11. Weekly revenue data for chart (last 12 weeks)
+    metrics.weeklyRevenue = [];
+    for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - (i * 7) - 7);
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (i * 7));
+
+        let weekRevenue = 0;
+        state.payments.forEach(r => {
+            const payDate = parseDate(r[PAY.DATE]);
+            if (payDate && payDate >= weekStart && payDate < weekEnd) {
+                weekRevenue += parseMoney(r[PAY.AMOUNT]);
+            }
+        });
+
+        metrics.weeklyRevenue.push({
+            week: `${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`,
+            revenue: weekRevenue
+        });
+    }
+
+    // 12. Weekly attendance for chart
+    metrics.weeklyAttendance = [];
+    for (let i = 11; i >= 0; i--) {
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - (i * 7) - 7);
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - (i * 7));
+
+        let weekAttendance = 0;
+        state.attendance.forEach(r => {
+            const attDate = parseDate(r[ATT.DATE]);
+            if (attDate && attDate >= weekStart && attDate < weekEnd) {
+                weekAttendance++;
+            }
+        });
+
+        metrics.weeklyAttendance.push(weekAttendance);
+    }
+
+    return metrics;
+}
+
 // --- Network Utilities ---
 
 async function fetchWithRetry(url, retries = 3, delay = 1000) {
@@ -234,6 +450,10 @@ async function initApp() {
 
         populateFilters();
         setupEventListeners();
+
+        // Check admin auth on page load
+        checkAdminAuth();
+
         $('#loadingState').hide();
 
         const urlUser = new URLSearchParams(window.location.search).get('user');
@@ -757,6 +977,158 @@ function renderAllPayments() {
     $('#totalPaymentSum').text(fmtMoney(tPaid));
 }
 
+// --- Admin Dashboard ---
+
+function renderAdminDashboard() {
+    $('#welcomeMessage').hide();
+    $('#userDashboard').hide();
+    $('#adminPanel').show();
+
+    const metrics = calculateAdminMetrics();
+
+    // Top row tiles
+    $('#adminTotalPending').text(fmtMoney(metrics.totalPending));
+    $('#adminTotalPrepaid').text(fmtMoney(metrics.totalPrepaid));
+    $('#adminActivePlayers').text(metrics.activePlayers);
+
+    // Additional metrics
+    $('#adminNetLiquidity').text(fmtMoney(metrics.netLiquidity));
+    $('#adminAvgAttendance').text(metrics.avgAttendance);
+    $('#adminPaymentVelocity').text(`${metrics.paymentVelocity} days`);
+    $('#adminRetentionRate').text(`${metrics.retentionRate}%`);
+    $('#adminNewPlayers').text(metrics.newPlayers);
+    $('#adminRevenueTrend').text(metrics.revenueTrend);
+
+    // Top 10 Debtors List
+    const debtorsHtml = metrics.topDebtors.length > 0
+        ? metrics.topDebtors.map((d, idx) => `
+            <div class="debtor-item">
+                <div class="debtor-rank">${idx + 1}</div>
+                <div class="debtor-name">
+                    <a href="#" class="text-link user-link" data-name="${d.name}">${d.name}</a>
+                </div>
+                <div class="debtor-amount">${fmtMoney(d.pending)}</div>
+            </div>
+        `).join('')
+        : '<div style="color: #888; text-align: center; padding: 20px;">No pending payments</div>';
+
+    $('#adminTopDebtors').html(debtorsHtml);
+
+    // Render revenue chart
+    renderAdminRevenueChart(metrics);
+
+    // Render the "All Data" table within admin panel
+    renderAllPayments();
+}
+
+function renderAdminRevenueChart(metrics) {
+    const ctx = document.getElementById('adminRevenueChart').getContext('2d');
+
+    if (adminRevenueChartInstance) adminRevenueChartInstance.destroy();
+
+    const labels = metrics.weeklyRevenue.map(w => w.week);
+    const revenueData = metrics.weeklyRevenue.map(w => w.revenue);
+    const attendanceData = metrics.weeklyAttendance;
+
+    adminRevenueChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Weekly Revenue (MVR)',
+                    data: revenueData,
+                    backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                    borderColor: 'rgba(76, 175, 80, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y',
+                    borderRadius: 4
+                },
+                {
+                    type: 'line',
+                    label: 'Weekly Attendance',
+                    data: attendanceData,
+                    borderColor: 'rgba(72, 141, 170, 1)',
+                    backgroundColor: 'rgba(72, 141, 170, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    yAxisID: 'y1',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Revenue (MVR)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + ' MVR';
+                        }
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Attendance'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.dataset.label || '';
+                            const value = context.parsed.y;
+                            if (label.includes('Revenue')) {
+                                return ` ${label}: ${value.toFixed(2)} MVR`;
+                            }
+                            return ` ${label}: ${value}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function showAdminPanel() {
+    if (!checkAdminAuth()) {
+        // Show password modal
+        $('#adminPasswordModal').css('display', 'flex');
+        $('#adminPasswordError').hide();
+        $('#adminPasswordInput').val('');
+        setTimeout(() => $('#adminPasswordInput').el?.focus(), 100);
+    } else {
+        // Already authenticated, show admin panel
+        renderAdminDashboard();
+    }
+}
+
 // --- Actions ---
 
 function selectUser(name) {
@@ -825,9 +1197,8 @@ function setupEventListeners() {
         window.history.pushState({}, '', window.location.pathname);
     });
 
-    $('#showAllData').click(() => {
-        state.paymentSort = { col: null, asc: true };
-        renderAllPayments();
+    $('#showAdminPanel').click(() => {
+        showAdminPanel();
     });
 
     $('.att-filter').on('change', () => {
@@ -855,6 +1226,34 @@ function setupEventListeners() {
     $('#neverPaidToggle').on('change', renderAllPayments);
 
     $('.close-modal, .close-modal-btn').on('click', () => $('#qrModal').hide());
+
+    // Admin password modal
+    $('.close-admin-modal').on('click', () => {
+        $('#adminPasswordModal').hide();
+        $('#adminPasswordError').hide();
+        $('#adminPasswordInput').val('');
+    });
+
+    $('#adminPasswordSubmit').click(() => {
+        const password = $('#adminPasswordInput').val();
+        if (setAdminAuth(password)) {
+            $('#adminPasswordModal').hide();
+            $('#adminPasswordError').hide();
+            $('#adminPasswordInput').val('');
+            renderAdminDashboard();
+        } else {
+            $('#adminPasswordError').show();
+            $('#adminPasswordInput').val('');
+            setTimeout(() => $('#adminPasswordInput').el?.focus(), 100);
+        }
+    });
+
+    // Allow Enter key to submit password
+    $('#adminPasswordInput').on('keypress', (e) => {
+        if (e.key === 'Enter') {
+            $('#adminPasswordSubmit').el?.click();
+        }
+    });
 
     // Attendance table headers
     $('#attendanceTable th[data-sort]').click(function() {

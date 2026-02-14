@@ -21,7 +21,7 @@
       <div class="search-container">
         <input type="text" id="nameSearch" class="search-input" placeholder="Start typing your name...">
         <button id="clearSearch" class="btn btn-secondary">Clear</button>
-        <button id="showAllData" class="btn btn-secondary">View All Data</button>
+        <button id="showAdminPanel" class="btn btn-secondary">Admin Panel</button>
       </div>
       <div id="searchSuggestions" style="display: none; margin-top: 10px;">
         <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select your name:</div>
@@ -140,9 +140,85 @@
       </div>
     </div>
 
-    <div id="allDataView" style="display: none;">
+    <div id="adminPanel" style="display: none;">
+      <div class="card" style="background: linear-gradient(135deg, #488daa, #357a96); color: white; text-align: center;">
+        <h2 style="margin: 0; font-size: 1.8rem;">⚙️ Admin Control Panel</h2>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Financial Health & Player Management Dashboard</p>
+      </div>
+
+      <!-- Dashboard Metrics -->
+      <div class="admin-dashboard">
+        <!-- Top Row: Financial Health Tiles -->
+        <div class="admin-row admin-row-top">
+          <div class="admin-tile admin-tile-red">
+            <div class="admin-tile-label">Total Outstanding</div>
+            <div class="admin-tile-value" id="adminTotalPending">0 MVR</div>
+            <div class="admin-tile-sublabel">Debt Pool</div>
+          </div>
+          <div class="admin-tile admin-tile-green">
+            <div class="admin-tile-label">Total Prepaid</div>
+            <div class="admin-tile-value" id="adminTotalPrepaid">0 MVR</div>
+            <div class="admin-tile-sublabel">Prepaid Liability</div>
+          </div>
+          <div class="admin-tile admin-tile-blue">
+            <div class="admin-tile-label">Active Players</div>
+            <div class="admin-tile-value" id="adminActivePlayers">0</div>
+            <div class="admin-tile-sublabel">Last 30 Days</div>
+          </div>
+        </div>
+
+        <!-- Middle Row: Charts & Top Debtors -->
+        <div class="admin-row admin-row-middle">
+          <div class="admin-tile-large">
+            <div class="card-title" style="margin: 0 0 15px 0;">📈 Revenue vs. Attendance</div>
+            <div style="position: relative; height: 280px; width: 100%;">
+              <canvas id="adminRevenueChart"></canvas>
+            </div>
+          </div>
+          <div class="admin-tile-large">
+            <div class="card-title" style="margin: 0 0 15px 0;">🎯 Top 10 Debtors</div>
+            <div id="adminTopDebtors" class="top-debtors-list"></div>
+          </div>
+        </div>
+
+        <!-- Additional Metrics Row -->
+        <div class="admin-row admin-row-metrics">
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Net Liquidity</div>
+            <div class="admin-metric-value" id="adminNetLiquidity">0 MVR</div>
+            <div class="admin-metric-description">Total Collected</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Avg Attendance</div>
+            <div class="admin-metric-value" id="adminAvgAttendance">0</div>
+            <div class="admin-metric-description">Per Session</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Payment Velocity</div>
+            <div class="admin-metric-value" id="adminPaymentVelocity">0 days</div>
+            <div class="admin-metric-description">Avg Collection Time</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Retention Rate</div>
+            <div class="admin-metric-value" id="adminRetentionRate">0%</div>
+            <div class="admin-metric-description">Last 30 Days</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">New Players</div>
+            <div class="admin-metric-value" id="adminNewPlayers">0</div>
+            <div class="admin-metric-description">This Month</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Revenue Trend</div>
+            <div class="admin-metric-value" id="adminRevenueTrend">--</div>
+            <div class="admin-metric-description">vs Last Week</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Master Ledger / All Data View -->
       <div class="card">
-        <div class="card-title">📋 All Payment Records</div>
+        <div class="card-title">📋 Master Ledger - All Payment Records</div>
         <div class="filters">
             <div class="filter-group">
                 <label class="filter-label">Filter Status</label>
@@ -185,6 +261,20 @@
               </tfoot>
             </table>
         </div>
+      </div>
+    </div>
+    </div>
+
+  <div id="adminPasswordModal" class="modal-overlay">
+    <div class="modal-content">
+      <span class="close-admin-modal">&times;</span>
+      <h3>🔒 Admin Access</h3>
+      <p style="color: #666; font-size: 0.9rem;">Enter the admin password to continue.</p>
+      <input type="password" id="adminPasswordInput" class="search-input" placeholder="Enter password" style="margin: 20px 0; width: 100%;">
+      <div id="adminPasswordError" style="color: #c62828; font-size: 0.9rem; margin-bottom: 10px; display: none;">Incorrect password. Please try again.</div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button id="adminPasswordSubmit" class="btn btn-primary">Submit</button>
+        <button class="btn btn-secondary close-admin-modal">Cancel</button>
       </div>
     </div>
   </div>

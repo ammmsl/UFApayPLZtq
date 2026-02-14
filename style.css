@@ -164,3 +164,213 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
         padding: 20px;
     }
 }
+
+/* Admin Panel Styles */
+.admin-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Admin Rows */
+.admin-row {
+    display: grid;
+    gap: 20px;
+}
+
+.admin-row-top {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.admin-row-middle {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.admin-row-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+/* Admin Tiles */
+.admin-tile {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 3px solid transparent;
+}
+
+.admin-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.admin-tile-red {
+    border-color: #ef5350;
+    background: linear-gradient(135deg, #ffebee 0%, #fff 100%);
+}
+
+.admin-tile-green {
+    border-color: #66bb6a;
+    background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+}
+
+.admin-tile-blue {
+    border-color: #488daa;
+    background: linear-gradient(135deg, #e3f2fd 0%, #fff 100%);
+}
+
+.admin-tile-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.admin-tile-value {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.admin-tile-sublabel {
+    font-size: 0.75rem;
+    color: #999;
+    text-transform: uppercase;
+}
+
+/* Large Tiles */
+.admin-tile-large {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Admin Metric Cards */
+.admin-metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease;
+    border: 2px solid #f0f0f0;
+}
+
+.admin-metric-card:hover {
+    transform: translateY(-2px);
+    border-color: #488daa;
+}
+
+.admin-metric-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.admin-metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #488daa;
+    margin-bottom: 5px;
+}
+
+.admin-metric-description {
+    font-size: 0.7rem;
+    color: #999;
+}
+
+/* Top Debtors List */
+.top-debtors-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.debtor-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 15px;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: background 0.2s ease;
+}
+
+.debtor-item:hover {
+    background: #e9ecef;
+}
+
+.debtor-rank {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #488daa, #357a96);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.debtor-name {
+    font-weight: 600;
+    color: #333;
+    text-align: left;
+}
+
+.debtor-amount {
+    font-weight: bold;
+    color: #c62828;
+    font-size: 1.1rem;
+}
+
+/* Responsive Admin Panel */
+@media (max-width: 768px) {
+    .admin-row-top,
+    .admin-row-middle {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-row-metrics {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .admin-tile {
+        padding: 20px;
+    }
+
+    .admin-tile-value {
+        font-size: 1.8rem;
+    }
+
+    .admin-metric-value {
+        font-size: 1.3rem;
+    }
+
+    .debtor-item {
+        grid-template-columns: 35px 1fr auto;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .debtor-rank {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+
+    .debtor-amount {
+        font-size: 1rem;
+    }
+}
