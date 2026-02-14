@@ -171,6 +171,27 @@
         <div class="admin-row admin-row-middle">
           <div class="admin-tile-large">
             <div class="card-title" style="margin: 0 0 15px 0;">📈 Revenue vs. Attendance</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+              <div class="filter-group" style="flex: 1; min-width: 150px;">
+                <label class="filter-label" style="font-size: 0.75rem;">Time Period</label>
+                <select id="revenueTimePeriod" class="chart-filter">
+                  <option value="7">Last 7 Days</option>
+                  <option value="30">Last 30 Days</option>
+                  <option value="90" selected>Last 3 Months</option>
+                  <option value="180">Last 6 Months</option>
+                  <option value="365">Last Year</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <div class="filter-group" style="flex: 1; min-width: 150px;">
+                <label class="filter-label" style="font-size: 0.75rem;">Grouping</label>
+                <select id="revenueBinning" class="chart-filter">
+                  <option value="daily">Daily</option>
+                  <option value="weekly" selected>Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
             <div style="position: relative; height: 280px; width: 100%;">
               <canvas id="adminRevenueChart"></canvas>
             </div>

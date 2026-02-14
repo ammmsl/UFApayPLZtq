@@ -342,48 +342,102 @@ function calculateAdminMetrics() {
         metrics.revenueTrend = thisWeekRevenue > 0 ? "+100%" : "--";
     }
 
-    // 11. Weekly revenue data for chart (last 12 weeks)
-    metrics.weeklyRevenue = [];
-    for (let i = 11; i >= 0; i--) {
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - (i * 7) - 7);
-        const weekEnd = new Date();
-        weekEnd.setDate(weekEnd.getDate() - (i * 7));
-
-        let weekRevenue = 0;
-        state.payments.forEach(r => {
-            const payDate = parseDate(r[PAY.DATE]);
-            if (payDate && payDate >= weekStart && payDate < weekEnd) {
-                weekRevenue += parseMoney(r[PAY.AMOUNT]);
-            }
-        });
-
-        metrics.weeklyRevenue.push({
-            week: `${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`,
-            revenue: weekRevenue
-        });
-    }
-
-    // 12. Weekly attendance for chart
-    metrics.weeklyAttendance = [];
-    for (let i = 11; i >= 0; i--) {
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - (i * 7) - 7);
-        const weekEnd = new Date();
-        weekEnd.setDate(weekEnd.getDate() - (i * 7));
-
-        let weekAttendance = 0;
-        state.attendance.forEach(r => {
-            const attDate = parseDate(r[ATT.DATE]);
-            if (attDate && attDate >= weekStart && attDate < weekEnd) {
-                weekAttendance++;
-            }
-        });
-
-        metrics.weeklyAttendance.push(weekAttendance);
-    }
+    // 11. Dynamic revenue and attendance data for chart
+    const chartData = calculateChartData(chartTimePeriod, chartBinning);
+    metrics.chartLabels = chartData.labels;
+    metrics.chartRevenue = chartData.revenue;
+    metrics.chartAttendance = chartData.attendance;
 
     return metrics;
+}
+
+function calculateChartData(timePeriod, binning) {
+    const now = new Date();
+    const labels = [];
+    const revenue = [];
+    const attendance = [];
+
+    // Calculate start date
+    let startDate;
+    if (timePeriod === 'all') {
+        // Find earliest date in attendance or payments
+        const allDates = [
+            ...state.attendance.map(r => parseDate(r[ATT.DATE])),
+            ...state.payments.map(r => parseDate(r[PAY.DATE]))
+        ].filter(d => d).sort((a, b) => a - b);
+
+        startDate = allDates.length > 0 ? allDates[0] : new Date();
+    } else {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(timePeriod));
+    }
+
+    // Generate time buckets based on binning
+    const buckets = [];
+
+    if (binning === 'daily') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            buckets.push({
+                start: new Date(currentDate),
+                end: new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59),
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    } else if (binning === 'weekly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const weekEnd = new Date(currentDate);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            buckets.push({
+                start: new Date(currentDate),
+                end: weekEnd > now ? now : weekEnd,
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 7);
+        }
+    } else if (binning === 'monthly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+            buckets.push({
+                start: new Date(currentDate),
+                end: monthEnd > now ? now : monthEnd,
+                label: `${SHORT_MONTHS[currentDate.getMonth()]} ${String(currentDate.getFullYear()).slice(2)}`
+            });
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            currentDate.setDate(1);
+        }
+    }
+
+    // Aggregate data into buckets
+    buckets.forEach(bucket => {
+        let bucketRevenue = 0;
+        let bucketAttendance = 0;
+
+        // Sum revenue for this bucket
+        state.payments.forEach(r => {
+            const payDate = parseDate(r[PAY.DATE]);
+            if (payDate && payDate >= bucket.start && payDate <= bucket.end) {
+                bucketRevenue += parseMoney(r[PAY.AMOUNT]);
+            }
+        });
+
+        // Count attendance for this bucket
+        state.attendance.forEach(r => {
+            const attDate = parseDate(r[ATT.DATE]);
+            if (attDate && attDate >= bucket.start && attDate <= bucket.end) {
+                bucketAttendance++;
+            }
+        });
+
+        labels.push(bucket.label);
+        revenue.push(bucketRevenue);
+        attendance.push(bucketAttendance);
+    });
+
+    return { labels, revenue, attendance };
 }
 
 // --- Network Utilities ---
@@ -984,7 +1038,11 @@ function renderAdminDashboard() {
     $('#userDashboard').hide();
     $('#adminPanel').show();
 
-    const metrics = calculateAdminMetrics();
+    // Get chart settings from dropdowns (default to 90 days, weekly if not set)
+    const chartTimePeriod = $('#revenueTimePeriod').val() || '90';
+    const chartBinning = $('#revenueBinning').val() || 'weekly';
+
+    const metrics = calculateAdminMetrics(chartTimePeriod, chartBinning);
 
     // Top row tiles
     $('#adminTotalPending').text(fmtMoney(metrics.totalPending));
@@ -1026,9 +1084,13 @@ function renderAdminRevenueChart(metrics) {
 
     if (adminRevenueChartInstance) adminRevenueChartInstance.destroy();
 
-    const labels = metrics.weeklyRevenue.map(w => w.week);
-    const revenueData = metrics.weeklyRevenue.map(w => w.revenue);
-    const attendanceData = metrics.weeklyAttendance;
+    const labels = metrics.chartLabels;
+    const revenueData = metrics.chartRevenue;
+    const attendanceData = metrics.chartAttendance;
+
+    // Determine label based on binning
+    const binningLabel = metrics.chartBinning === 'daily' ? 'Daily' :
+                        metrics.chartBinning === 'weekly' ? 'Weekly' : 'Monthly';
 
     adminRevenueChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -1037,7 +1099,7 @@ function renderAdminRevenueChart(metrics) {
             datasets: [
                 {
                     type: 'bar',
-                    label: 'Weekly Revenue (MVR)',
+                    label: `${binningLabel} Revenue (MVR)`,
                     data: revenueData,
                     backgroundColor: 'rgba(76, 175, 80, 0.6)',
                     borderColor: 'rgba(76, 175, 80, 1)',
@@ -1047,7 +1109,7 @@ function renderAdminRevenueChart(metrics) {
                 },
                 {
                     type: 'line',
-                    label: 'Weekly Attendance',
+                    label: `${binningLabel} Attendance`,
                     data: attendanceData,
                     borderColor: 'rgba(72, 141, 170, 1)',
                     backgroundColor: 'rgba(72, 141, 170, 0.1)',
@@ -1279,6 +1341,13 @@ function setupEventListeners() {
         $(this).addClass(sort.asc ? 'sort-asc' : 'sort-desc');
 
         renderAllPayments();
+    });
+
+    // Admin chart controls
+    $('#revenueTimePeriod, #revenueBinning').on('change', () => {
+        if (state.isAdminAuthenticated && $('#adminPanel').css('display') !== 'none') {
+            renderAdminDashboard();
+        }
     });
 }
 
