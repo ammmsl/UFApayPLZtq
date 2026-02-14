@@ -150,22 +150,22 @@
       <div class="admin-dashboard">
         <!-- Top Row: Financial Health Tiles -->
         <div class="admin-row admin-row-top">
-          <div class="admin-tile admin-tile-red">
+          <div class="admin-tile admin-tile-red has-tooltip" data-tooltip="Sum of all pending payments across all players. Money owed to the association for attended sessions that haven't been paid yet.">
             <div class="admin-tile-label">Total Outstanding</div>
             <div class="admin-tile-value" id="adminTotalPending">0 MVR</div>
             <div class="admin-tile-sublabel">Debt Pool</div>
           </div>
-          <div class="admin-tile admin-tile-green">
+          <div class="admin-tile admin-tile-green has-tooltip" data-tooltip="Sum of all prepaid balances. Money paid in advance for sessions not yet attended. Represents liability to deliver future sessions.">
             <div class="admin-tile-label">Total Prepaid</div>
             <div class="admin-tile-value" id="adminTotalPrepaid">0 MVR</div>
             <div class="admin-tile-sublabel">Prepaid Liability</div>
           </div>
-          <div class="admin-tile admin-tile-blue">
+          <div class="admin-tile admin-tile-blue has-tooltip" data-tooltip="Number of unique players who attended at least one session in the last 30 days. Indicates current active community size.">
             <div class="admin-tile-label">Active Players</div>
             <div class="admin-tile-value" id="adminActivePlayers">0</div>
             <div class="admin-tile-sublabel">Last 30 Days</div>
           </div>
-          <div class="admin-tile admin-tile-purple">
+          <div class="admin-tile admin-tile-purple has-tooltip" data-tooltip="Total revenue collected minus actual field booking costs from Session Input sheet. Positive values indicate profit, negative values indicate operating at a loss.">
             <div class="admin-tile-label">Total Profit</div>
             <div class="admin-tile-value" id="adminTotalProfit">0 MVR</div>
             <div class="admin-tile-sublabel">Revenue - Costs</div>
@@ -224,32 +224,32 @@
 
         <!-- Additional Metrics Row -->
         <div class="admin-row admin-row-metrics">
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all payments received from players. This represents total revenue collected to date.">
             <div class="admin-metric-label">Net Liquidity</div>
             <div class="admin-metric-value" id="adminNetLiquidity">0 MVR</div>
             <div class="admin-metric-description">Total Collected</div>
           </div>
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Total attendance records divided by the number of unique session dates. Helps determine optimal field booking sizes.">
             <div class="admin-metric-label">Avg Attendance</div>
             <div class="admin-metric-value" id="adminAvgAttendance">0</div>
             <div class="admin-metric-description">Per Session</div>
           </div>
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Average number of days between a player attending a session and making a payment for that session. Lower is better - indicates faster payment collection.">
             <div class="admin-metric-label">Payment Velocity</div>
             <div class="admin-metric-value" id="adminPaymentVelocity">0 days</div>
             <div class="admin-metric-description">Avg Collection Time</div>
           </div>
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Percentage of players who attended in the last 30 days compared to those who attended in the previous 30 days. Shows player engagement and churn rate.">
             <div class="admin-metric-label">Retention Rate</div>
             <div class="admin-metric-value" id="adminRetentionRate">0%</div>
             <div class="admin-metric-description">Last 30 Days</div>
           </div>
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Count of players who attended their first ever session this month. Tracks new player acquisition and growth.">
             <div class="admin-metric-label">New Players</div>
             <div class="admin-metric-value" id="adminNewPlayers">0</div>
             <div class="admin-metric-description">This Month</div>
           </div>
-          <div class="admin-metric-card">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Percentage change in revenue collected this week compared to last week. Positive values indicate increasing revenue, negative values show declining collections.">
             <div class="admin-metric-label">Revenue Trend</div>
             <div class="admin-metric-value" id="adminRevenueTrend">--</div>
             <div class="admin-metric-description">vs Last Week</div>

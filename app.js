@@ -28,6 +28,7 @@ const $ = (selector) => {
 const ATT = { NAME: 0, LOCATION: 1, MONTH: 2, DATE: 3, COST: 4, MEMBERSHIP: 6 };
 const SUM = { NAME: 1, PENDING: 2, PREPAY: 3, TOTAL: 4, LAST_PAID_DATE: 7, LAST_PAID_AMT: 8, COVERED_UNTIL: 9 };
 const PAY = { DATE: 0, NAME: 1, PLAYER_ID: 2, COMMENT: 3, REFERENCE: 4, TXN_DATE: 5, FROM: 6, TO: 7, ACCOUNT: 8, AMOUNT: 9, REMARKS: 10, PREPAYMENT: 11 };
+const SESSION = { DATE: 0, FIELD_COST: 6 }; // Session Input sheet: Column A = Date, Column G = Field Booking Cost
 
 const MONTH_ORDER = {
     jan:0, january:0, feb:1, february:1, mar:2, march:2,
@@ -48,6 +49,7 @@ let state = {
     summary: [],
     attendance: [],
     payments: [],
+    sessionInput: [],
     users: [],
     years: [],
     currentUser: null,
@@ -223,9 +225,26 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     // 3. Net Association Liquidity (total collected)
     metrics.netLiquidity = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.TOTAL]), 0);
 
-    // 3b. Total Profit (revenue - session costs)
-    const totalSessions = state.attendance.length;
-    const totalCosts = totalSessions * SESSION_COST;
+    // 3b. Total Profit (revenue - actual session costs)
+    // Build a map of date -> field cost from Session Input sheet
+    const fieldCostMap = {};
+    state.sessionInput.forEach(row => {
+        const date = row[SESSION.DATE];
+        const cost = parseMoney(row[SESSION.FIELD_COST]);
+        if (date && cost > 0) {
+            fieldCostMap[date] = cost;
+        }
+    });
+
+    // Calculate total costs by matching attendance dates to field costs
+    let totalCosts = 0;
+    const uniqueDates = new Set(state.attendance.map(r => r[ATT.DATE]));
+    uniqueDates.forEach(date => {
+        // Try to find exact match or fallback to SESSION_COST
+        const cost = fieldCostMap[date] || SESSION_COST;
+        totalCosts += cost;
+    });
+
     metrics.totalProfit = metrics.netLiquidity - totalCosts;
 
     // 4. Active Players (attended in last 30 days)
@@ -664,10 +683,11 @@ async function initApp() {
         $('#loadingState').show();
 
         // Fetch main data only (removed metadata fetch - was causing 100% API errors)
-        const [summaryRes, attendanceRes, paymentsRes] = await Promise.all([
+        const [summaryRes, attendanceRes, paymentsRes, sessionInputRes] = await Promise.all([
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Summary Sheet?key=${CONFIG.apiKey}`),
             fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/PivotAttendance?key=${CONFIG.apiKey}`),
-            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`)
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Payments?key=${CONFIG.apiKey}`),
+            fetchWithRetry(`${CONFIG.baseUrl}/${CONFIG.sheetID}/values/Session Input?key=${CONFIG.apiKey}`)
         ]);
 
         // Validate API responses
@@ -684,16 +704,18 @@ async function initApp() {
         const rawSummary = summaryRes.values.slice(1);
         const rawAttendance = attendanceRes.values.slice(1);
         const rawPayments = (paymentsRes.values || []).slice(1);
+        const rawSessionInput = (sessionInputRes.values || []).slice(1);
 
-        console.log(`Raw data counts - Summary: ${rawSummary.length}, Attendance: ${rawAttendance.length}, Payments: ${rawPayments.length}`);
+        console.log(`Raw data counts - Summary: ${rawSummary.length}, Attendance: ${rawAttendance.length}, Payments: ${rawPayments.length}, SessionInput: ${rawSessionInput.length}`);
 
         // Filter out completely empty rows, but be lenient with column count
         state.summary = rawSummary.filter(row => row && row.length > 0 && row[SUM.NAME]);
         state.attendance = rawAttendance.filter(row => row && row.length > 0 && row[ATT.NAME]);
         state.payments = rawPayments.filter(row => row && row.length > 0);
+        state.sessionInput = rawSessionInput.filter(row => row && row.length > 0 && row[SESSION.DATE]);
         state.users = [...new Set(state.summary.map(r => r[SUM.NAME]))].filter(Boolean).sort();
 
-        console.log(`Filtered data counts - Summary: ${state.summary.length}, Attendance: ${state.attendance.length}, Payments: ${state.payments.length}`);
+        console.log(`Filtered data counts - Summary: ${state.summary.length}, Attendance: ${state.attendance.length}, Payments: ${state.payments.length}, SessionInput: ${state.sessionInput.length}`);
 
         if (state.summary.length === 0 || state.attendance.length === 0) {
             throw new Error(`No valid data found. Summary: ${state.summary.length} rows, Attendance: ${state.attendance.length} rows`);
