@@ -59,9 +59,16 @@ let state = {
 let financialChartInstance = null;
 let activityChartInstance = null;
 let adminRevenueChartInstance = null;
+let adminVelocityChartInstance = null;
+let adminRetentionChartInstance = null;
 
 const ADMIN_PASSWORD = "6769";
 const ADMIN_AUTH_KEY = "ufaAdminAuth";
+const SESSION_COST = 700; // MVR per session
+
+let adminChartState = {
+    activeChart: 'revenue' // 'revenue', 'velocity', or 'retention'
+};
 
 // --- Utilities ---
 
@@ -215,6 +222,11 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
 
     // 3. Net Association Liquidity (total collected)
     metrics.netLiquidity = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.TOTAL]), 0);
+
+    // 3b. Total Profit (revenue - session costs)
+    const totalSessions = state.attendance.length;
+    const totalCosts = totalSessions * SESSION_COST;
+    metrics.totalProfit = metrics.netLiquidity - totalCosts;
 
     // 4. Active Players (attended in last 30 days)
     const thirtyDaysAgo = new Date();
@@ -440,6 +452,193 @@ function calculateChartData(timePeriod, binning) {
     });
 
     return { labels, revenue, attendance };
+}
+
+function calculatePaymentVelocityChartData(timePeriod, binning) {
+    const now = new Date();
+    const labels = [];
+    const velocities = [];
+
+    // Calculate start date
+    let startDate;
+    if (timePeriod === 'all') {
+        const allDates = [
+            ...state.attendance.map(r => parseDate(r[ATT.DATE])),
+            ...state.payments.map(r => parseDate(r[PAY.DATE]))
+        ].filter(d => d).sort((a, b) => a - b);
+        startDate = allDates.length > 0 ? allDates[0] : new Date();
+    } else {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(timePeriod));
+    }
+
+    // Generate time buckets
+    const buckets = [];
+    if (binning === 'daily') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            buckets.push({
+                start: new Date(currentDate),
+                end: new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59),
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    } else if (binning === 'weekly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const weekEnd = new Date(currentDate);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            buckets.push({
+                start: new Date(currentDate),
+                end: weekEnd > now ? now : weekEnd,
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 7);
+        }
+    } else if (binning === 'monthly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+            buckets.push({
+                start: new Date(currentDate),
+                end: monthEnd > now ? now : monthEnd,
+                label: `${SHORT_MONTHS[currentDate.getMonth()]} ${String(currentDate.getFullYear()).slice(2)}`
+            });
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            currentDate.setDate(1);
+        }
+    }
+
+    // Calculate payment velocity for each bucket
+    buckets.forEach(bucket => {
+        let totalDays = 0;
+        let count = 0;
+
+        // For each session in this bucket, find the payment velocity
+        state.attendance.forEach(attRec => {
+            const attDate = parseDate(attRec[ATT.DATE]);
+            if (!attDate || attDate < bucket.start || attDate > bucket.end) return;
+
+            const userName = attRec[ATT.NAME];
+            const userPayments = state.payments.filter(p => p[PAY.NAME] === userName);
+
+            // Find first payment after this session
+            const nextPayment = userPayments.find(pay => {
+                const payDate = parseDate(pay[PAY.DATE]);
+                return payDate && payDate >= attDate;
+            });
+
+            if (nextPayment) {
+                const payDate = parseDate(nextPayment[PAY.DATE]);
+                const daysDiff = Math.floor((payDate - attDate) / (1000 * 60 * 60 * 24));
+                totalDays += daysDiff;
+                count++;
+            }
+        });
+
+        labels.push(bucket.label);
+        velocities.push(count > 0 ? Math.round(totalDays / count) : null);
+    });
+
+    return { labels, velocities };
+}
+
+function calculateRetentionRateChartData(timePeriod, binning) {
+    const now = new Date();
+    const labels = [];
+    const retentionRates = [];
+
+    // Calculate start date
+    let startDate;
+    if (timePeriod === 'all') {
+        const allDates = state.attendance.map(r => parseDate(r[ATT.DATE])).filter(d => d).sort((a, b) => a - b);
+        startDate = allDates.length > 0 ? allDates[0] : new Date();
+    } else {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(timePeriod));
+    }
+
+    // Generate time buckets
+    const buckets = [];
+    if (binning === 'daily') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            buckets.push({
+                start: new Date(currentDate),
+                end: new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59),
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    } else if (binning === 'weekly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const weekEnd = new Date(currentDate);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            buckets.push({
+                start: new Date(currentDate),
+                end: weekEnd > now ? now : weekEnd,
+                label: `${currentDate.getDate()}/${currentDate.getMonth() + 1}`
+            });
+            currentDate.setDate(currentDate.getDate() + 7);
+        }
+    } else if (binning === 'monthly') {
+        const currentDate = new Date(startDate);
+        while (currentDate <= now) {
+            const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
+            buckets.push({
+                start: new Date(currentDate),
+                end: monthEnd > now ? now : monthEnd,
+                label: `${SHORT_MONTHS[currentDate.getMonth()]} ${String(currentDate.getFullYear()).slice(2)}`
+            });
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            currentDate.setDate(1);
+        }
+    }
+
+    // Calculate retention rate for each bucket
+    for (let i = 0; i < buckets.length; i++) {
+        const bucket = buckets[i];
+        const prevBucket = i > 0 ? buckets[i - 1] : null;
+
+        if (!prevBucket) {
+            labels.push(bucket.label);
+            retentionRates.push(null); // No previous period to compare
+            continue;
+        }
+
+        // Get players from previous bucket
+        const prevPlayers = new Set();
+        state.attendance.forEach(r => {
+            const attDate = parseDate(r[ATT.DATE]);
+            if (attDate && attDate >= prevBucket.start && attDate <= prevBucket.end) {
+                prevPlayers.add(r[ATT.NAME]);
+            }
+        });
+
+        // Get players from current bucket
+        const currPlayers = new Set();
+        state.attendance.forEach(r => {
+            const attDate = parseDate(r[ATT.DATE]);
+            if (attDate && attDate >= bucket.start && attDate <= bucket.end) {
+                currPlayers.add(r[ATT.NAME]);
+            }
+        });
+
+        // Calculate retention
+        if (prevPlayers.size > 0) {
+            const retained = [...prevPlayers].filter(p => currPlayers.has(p)).length;
+            const retentionRate = (retained / prevPlayers.size) * 100;
+            labels.push(bucket.label);
+            retentionRates.push(Math.round(retentionRate));
+        } else {
+            labels.push(bucket.label);
+            retentionRates.push(null);
+        }
+    }
+
+    return { labels, retentionRates };
 }
 
 // --- Network Utilities ---
@@ -1050,6 +1249,7 @@ function renderAdminDashboard() {
     $('#adminTotalPending').text(fmtMoney(metrics.totalPending));
     $('#adminTotalPrepaid').text(fmtMoney(metrics.totalPrepaid));
     $('#adminActivePlayers').text(metrics.activePlayers);
+    $('#adminTotalProfit').text(fmtMoney(metrics.totalProfit));
 
     // Additional metrics
     $('#adminNetLiquidity').text(fmtMoney(metrics.netLiquidity));
@@ -1074,8 +1274,10 @@ function renderAdminDashboard() {
 
     $('#adminTopDebtors').html(debtorsHtml);
 
-    // Render revenue chart
+    // Render all charts (only the active one will be visible)
     renderAdminRevenueChart(metrics);
+    renderAdminVelocityChart(chartTimePeriod, chartBinning);
+    renderAdminRetentionChart(chartTimePeriod, chartBinning);
 
     // Render the "All Data" table within admin panel
     renderAllPayments();
@@ -1172,6 +1374,146 @@ function renderAdminRevenueChart(metrics) {
                                 return ` ${label}: ${value.toFixed(2)} MVR`;
                             }
                             return ` ${label}: ${value}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderAdminVelocityChart(timePeriod, binning) {
+    const ctx = document.getElementById('adminVelocityChart').getContext('2d');
+
+    if (adminVelocityChartInstance) adminVelocityChartInstance.destroy();
+
+    const chartData = calculatePaymentVelocityChartData(timePeriod, binning);
+    const labels = chartData.labels;
+    const velocities = chartData.velocities;
+
+    const binningLabel = binning === 'daily' ? 'Daily' : binning === 'weekly' ? 'Weekly' : 'Monthly';
+
+    adminVelocityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: `${binningLabel} Payment Velocity (Days)`,
+                    data: velocities,
+                    borderColor: 'rgba(255, 152, 0, 1)',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgba(255, 152, 0, 1)',
+                    tension: 0.3,
+                    spanGaps: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Days'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return Math.round(value) + ' days';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            return ` Average: ${value !== null ? Math.round(value) + ' days' : 'No data'}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderAdminRetentionChart(timePeriod, binning) {
+    const ctx = document.getElementById('adminRetentionChart').getContext('2d');
+
+    if (adminRetentionChartInstance) adminRetentionChartInstance.destroy();
+
+    const chartData = calculateRetentionRateChartData(timePeriod, binning);
+    const labels = chartData.labels;
+    const retentionRates = chartData.retentionRates;
+
+    const binningLabel = binning === 'daily' ? 'Daily' : binning === 'weekly' ? 'Weekly' : 'Monthly';
+
+    adminRetentionChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: `${binningLabel} Retention Rate (%)`,
+                    data: retentionRates,
+                    borderColor: 'rgba(156, 39, 176, 1)',
+                    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgba(156, 39, 176, 1)',
+                    tension: 0.3,
+                    spanGaps: true,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Retention Rate (%)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed.y;
+                            return ` Retention: ${value !== null ? value + '%' : 'No data'}`;
                         }
                     }
                 }
@@ -1349,6 +1691,26 @@ function setupEventListeners() {
     $('#revenueTimePeriod, #revenueBinning').on('change', () => {
         if (state.isAdminAuthenticated && $('#adminPanel').css('display') !== 'none') {
             renderAdminDashboard();
+        }
+    });
+
+    // Admin chart tabs
+    $('.admin-chart-tab').click(function() {
+        const chartType = this.getAttribute('data-chart');
+        adminChartState.activeChart = chartType;
+
+        // Update tab active states
+        $('.admin-chart-tab').removeClass('active');
+        $(this).addClass('active');
+
+        // Show/hide chart containers
+        $('.admin-chart-container').hide();
+        if (chartType === 'revenue') {
+            $('#revenueChartContainer').show();
+        } else if (chartType === 'velocity') {
+            $('#velocityChartContainer').show();
+        } else if (chartType === 'retention') {
+            $('#retentionChartContainer').show();
         }
     });
 }

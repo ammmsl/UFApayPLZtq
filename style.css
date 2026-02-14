@@ -196,7 +196,7 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
 }
 
 .admin-row-top {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .admin-row-middle {
@@ -238,6 +238,11 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
     background: linear-gradient(135deg, #e3f2fd 0%, #fff 100%);
 }
 
+.admin-tile-purple {
+    border-color: #9c27b0;
+    background: linear-gradient(135deg, #f3e5f5 0%, #fff 100%);
+}
+
 .admin-tile-label {
     font-size: 0.85rem;
     font-weight: 600;
@@ -266,6 +271,44 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
     border-radius: 16px;
     padding: 25px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Admin Chart Tabs */
+.admin-chart-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0;
+}
+
+.admin-chart-tab {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #999;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.admin-chart-tab:hover {
+    color: #488daa;
+    background: #f8f9fa;
+}
+
+.admin-chart-tab.active {
+    color: #488daa;
+    border-bottom-color: #488daa;
+    background: #f8f9fa;
+}
+
+.admin-chart-container {
+    transition: opacity 0.3s ease;
 }
 
 /* Admin Metric Cards */
@@ -353,9 +396,17 @@ tfoot td { font-weight: bold; background: #f8f9fa; }
 
 /* Responsive Admin Panel */
 @media (max-width: 768px) {
-    .admin-row-top,
+    .admin-row-top {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
     .admin-row-middle {
         grid-template-columns: 1fr;
+    }
+
+    .admin-chart-tab {
+        padding: 10px 12px;
+        font-size: 0.8rem;
     }
 
     .admin-row-metrics {

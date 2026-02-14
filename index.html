@@ -165,12 +165,24 @@
             <div class="admin-tile-value" id="adminActivePlayers">0</div>
             <div class="admin-tile-sublabel">Last 30 Days</div>
           </div>
+          <div class="admin-tile admin-tile-purple">
+            <div class="admin-tile-label">Total Profit</div>
+            <div class="admin-tile-value" id="adminTotalProfit">0 MVR</div>
+            <div class="admin-tile-sublabel">Revenue - Costs</div>
+          </div>
         </div>
 
         <!-- Middle Row: Charts & Top Debtors -->
         <div class="admin-row admin-row-middle">
           <div class="admin-tile-large">
-            <div class="card-title" style="margin: 0 0 15px 0;">📈 Revenue vs. Attendance</div>
+            <!-- Chart Tabs -->
+            <div class="admin-chart-tabs">
+              <button class="admin-chart-tab active" data-chart="revenue">📈 Revenue & Attendance</button>
+              <button class="admin-chart-tab" data-chart="velocity">⚡ Payment Velocity</button>
+              <button class="admin-chart-tab" data-chart="retention">🔄 Retention Rate</button>
+            </div>
+
+            <!-- Chart Controls -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
               <div class="filter-group" style="flex: 1; min-width: 150px;">
                 <label class="filter-label" style="font-size: 0.75rem;">Time Period</label>
@@ -192,8 +204,16 @@
                 </select>
               </div>
             </div>
-            <div style="position: relative; height: 280px; width: 100%;">
+
+            <!-- Chart Containers -->
+            <div class="admin-chart-container active" id="revenueChartContainer" style="position: relative; height: 280px; width: 100%;">
               <canvas id="adminRevenueChart"></canvas>
+            </div>
+            <div class="admin-chart-container" id="velocityChartContainer" style="position: relative; height: 280px; width: 100%; display: none;">
+              <canvas id="adminVelocityChart"></canvas>
+            </div>
+            <div class="admin-chart-container" id="retentionChartContainer" style="position: relative; height: 280px; width: 100%; display: none;">
+              <canvas id="adminRetentionChart"></canvas>
             </div>
           </div>
           <div class="admin-tile-large">
