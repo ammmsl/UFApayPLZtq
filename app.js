@@ -456,12 +456,20 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     const yearlyData = {};
 
     // Aggregate payments by year for Revenue
+    // Revenue = ALL player payments (Prepay, PostPay, Adjustment)
+    // EXCLUDE only Field Booking (historical, abandoned concept)
     state.payments.forEach(r => {
         const date = parseDate(r[PAY.DATE]);
         if (!date) return;
 
         const year = date.getFullYear();
         const amount = parseMoney(r[PAY.AMOUNT]);
+        const paymentType = (r[PAY.PREPAYMENT] || '').trim().toLowerCase();
+
+        // Skip Field Booking payments (historical only)
+        if (paymentType === 'field booking' || paymentType === 'fieldbooking') {
+            return;
+        }
 
         // Initialize year if not exists
         if (!yearlyData[year]) {
@@ -473,11 +481,8 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
             };
         }
 
-        // Count only player payments (Prepay, PostPay, Adjustment classes)
-        const classification = r[PAY.PREPAYMENT];
-        if (classification === 'Prepay' || classification === 'PostPay' || classification === 'Adjustment') {
-            yearlyData[year].revenue += amount;
-        }
+        // Count all other payments as revenue
+        yearlyData[year].revenue += amount;
     });
 
     // Aggregate attendance by year for Profit
