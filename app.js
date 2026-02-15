@@ -25,17 +25,19 @@ const $ = (selector) => {
 
 // --- Column index constants ---
 
-// NOTE: Actual column indices from Google Sheets structure (confirmed)
-// PivotAttendance headers: "Date Pull, Month, Location, Name, Player ID, Cost Per, Membership, Surcharge"
+// NOTE: Actual data structure from PivotAttendance sheet
+// The headers say: "Date Pull, Month, Location, Name, Player ID, Cost Per, Membership, Surcharge"
+// But the actual data appears to be in a different order (likely due to pivot structure)
+// Based on actual data inspection: Name at 0, Location at 1, Month at 2, Date at 3, etc.
 const ATT = {
-    DATE: 0,         // Date Pull (the session date)
-    MONTH: 1,        // Month
-    LOCATION: 2,     // Location
-    NAME: 3,         // Name
-    PLAYER_ID: 4,    // Player ID
-    COST: 5,         // Cost Per
-    MEMBERSHIP: 6,   // Membership
-    SURCHARGE: 7     // Surcharge (calculated, output as number)
+    NAME: 0,         // Player Name (confirmed from data: 'Afrah', 'Aikko', etc.)
+    LOCATION: 1,     // Location
+    MONTH: 2,        // Month
+    DATE: 3,         // Session Date (confirmed from data: '05/01/2024', etc.)
+    COST: 4,         // Cost Per
+    PLAYER_ID: 5,    // Player ID
+    MEMBERSHIP: 6,   // Membership status
+    SURCHARGE: 7     // Surcharge (calculated value)
 };
 const SUM = { NAME: 1, PENDING: 2, PREPAY: 3, TOTAL: 4, LAST_PAID_DATE: 7, LAST_PAID_AMT: 8, COVERED_UNTIL: 9 };
 // Payments sheet: DATE, NAME, PLAYER_ID, COMMENT, REFERENCE, TXN_DATE, FROM, TO, ACCOUNT, AMOUNT, REMARKS, PREPAYMENT
