@@ -25,12 +25,21 @@ const $ = (selector) => {
 
 // --- Column index constants ---
 
-// NOTE: Column indices discovered from actual Google Sheets structure
-// PivotAttendance: Name, Location, Month, Date, Cost Per, [Player ID], Membership, Surcharge
-const ATT = { NAME: 0, LOCATION: 1, MONTH: 2, DATE: 3, COST: 4, PLAYER_ID: 5, MEMBERSHIP: 6, SURCHARGE: 7 };
+// NOTE: Actual column indices from Google Sheets structure (confirmed)
+// PivotAttendance headers: "Date Pull, Month, Location, Name, Player ID, Cost Per, Membership, Surcharge"
+const ATT = {
+    DATE: 0,         // Date Pull (the session date)
+    MONTH: 1,        // Month
+    LOCATION: 2,     // Location
+    NAME: 3,         // Name
+    PLAYER_ID: 4,    // Player ID
+    COST: 5,         // Cost Per
+    MEMBERSHIP: 6,   // Membership
+    SURCHARGE: 7     // Surcharge (calculated, output as number)
+};
 const SUM = { NAME: 1, PENDING: 2, PREPAY: 3, TOTAL: 4, LAST_PAID_DATE: 7, LAST_PAID_AMT: 8, COVERED_UNTIL: 9 };
 // Payments sheet: DATE, NAME, PLAYER_ID, COMMENT, REFERENCE, TXN_DATE, FROM, TO, ACCOUNT, AMOUNT, REMARKS, PREPAYMENT
-// PREPAYMENT column values: "Prepay", "PostPay", "Field Booking"
+// PREPAYMENT column values: "Prepay", "PostPay", "Adjustment", "Field Booking"
 const PAY = { DATE: 0, NAME: 1, PLAYER_ID: 2, COMMENT: 3, REFERENCE: 4, TXN_DATE: 5, FROM: 6, TO: 7, ACCOUNT: 8, AMOUNT: 9, REMARKS: 10, PREPAYMENT: 11 };
 const SESSION = { DATE: 0, FIELD_COST: 6 }; // Session Input sheet: Column A = Date, Column G = Field Booking Cost
 
