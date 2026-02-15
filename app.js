@@ -474,7 +474,7 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
         }
 
         // Count only player payments (Prepay, PostPay, Adjustment classes)
-        const classification = getPaymentClassification(r);
+        const classification = r[PAY.PREPAYMENT];
         if (classification === 'Prepay' || classification === 'PostPay' || classification === 'Adjustment') {
             yearlyData[year].revenue += amount;
         }
