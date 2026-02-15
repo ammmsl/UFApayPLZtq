@@ -1434,6 +1434,46 @@ function renderAttendanceTable(data) {
 
 // --- All Payments Table ---
 
+function populateFilterDropdowns() {
+    // Extract unique years from "Covered Until" dates
+    const coveredYears = new Set();
+    state.summary.forEach(r => {
+        const date = parseDate(r[SUM.COVERED_UNTIL]);
+        if (date) coveredYears.add(date.getFullYear());
+    });
+    const sortedCoveredYears = Array.from(coveredYears).sort((a, b) => b - a);
+
+    // Extract unique years from "Last Payment Date"
+    const paymentYears = new Set();
+    state.summary.forEach(r => {
+        const date = parseDate(r[SUM.LAST_PAID_DATE]);
+        if (date) paymentYears.add(date.getFullYear());
+    });
+    const sortedPaymentYears = Array.from(paymentYears).sort((a, b) => b - a);
+
+    // Populate Covered Year dropdown
+    const currentCoveredYear = $('#coveredYearFilter').val();
+    const coveredYearOptions = ['<option value="all">All Years</option>'].concat(
+        sortedCoveredYears.map(y => `<option value="${y}" ${currentCoveredYear == y ? 'selected' : ''}>${y}</option>`)
+    ).join('');
+    $('#coveredYearFilter').html(coveredYearOptions);
+
+    // Populate Last Payment Year dropdown
+    const currentPaymentYear = $('#lastPaymentYearFilter').val();
+    const paymentYearOptions = ['<option value="all">All Years</option>'].concat(
+        sortedPaymentYears.map(y => `<option value="${y}" ${currentPaymentYear == y ? 'selected' : ''}>${y}</option>`)
+    ).join('');
+    $('#lastPaymentYearFilter').html(paymentYearOptions);
+
+    // Populate Last Payment Month dropdown
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const currentPaymentMonth = $('#lastPaymentMonthFilter').val();
+    const monthOptions = ['<option value="all">All Months</option>'].concat(
+        monthNames.map((m, i) => `<option value="${i}" ${currentPaymentMonth == i ? 'selected' : ''}>${m}</option>`)
+    ).join('');
+    $('#lastPaymentMonthFilter').html(monthOptions);
+}
+
 function renderAllPayments() {
     $('#welcomeMessage').hide();
     $('#userDashboard').hide();
@@ -1441,11 +1481,27 @@ function renderAllPayments() {
 
     const statusFilter = $('#paymentStatusFilter').val();
     const showNeverPaid = $('#neverPaidToggle').el.checked;
+    const showOneSession = $('#oneSessionToggle').el?.checked || false;
+    const coveredYearFilter = $('#coveredYearFilter').val();
+    const lastPaymentYearFilter = $('#lastPaymentYearFilter').val();
+    const lastPaymentMonthFilter = $('#lastPaymentMonthFilter').val();
 
+    // Show/hide filter groups based on status filter
     if (statusFilter === 'pending') {
         $('#neverPaidFilterGroup').css('display', 'flex');
+        $('#coveredYearFilterGroup').css('display', 'flex');
+        $('#lastPaymentFilterGroup').css('display', 'flex');
+        $('#lastPaymentMonthFilterGroup').css('display', 'flex');
+        $('#oneSessionFilterGroup').css('display', 'flex');
+
+        // Populate year dropdowns if not already populated
+        populateFilterDropdowns();
     } else {
         $('#neverPaidFilterGroup').hide();
+        $('#coveredYearFilterGroup').hide();
+        $('#lastPaymentFilterGroup').hide();
+        $('#lastPaymentMonthFilterGroup').hide();
+        $('#oneSessionFilterGroup').hide();
     }
 
     let data = state.summary.filter(r => {
@@ -1454,12 +1510,47 @@ function renderAllPayments() {
 
         if (statusFilter === 'pending') {
             const isPending = pend > 0;
-            if (isPending && showNeverPaid) {
+            if (!isPending) return false;
+
+            // Apply "Never Paid Only" filter
+            if (showNeverPaid) {
                 const coveredDate = r[SUM.COVERED_UNTIL];
                 const hasNoDate = !coveredDate || coveredDate === '-' || coveredDate.trim() === '';
-                return hasNoDate;
+                if (!hasNoDate) return false;
             }
-            return isPending;
+
+            // Apply "One Session Only" filter
+            if (showOneSession) {
+                const ledger = calculateFinancialLedger(r[SUM.NAME]);
+                const unpaidSessions = ledger.sessions.filter(s => s.status === 'unpaid' || s.status === 'partial');
+                if (unpaidSessions.length !== 1) return false;
+            }
+
+            // Apply "Covered Until Year" filter
+            if (coveredYearFilter !== 'all') {
+                const coveredDate = parseDate(r[SUM.COVERED_UNTIL]);
+                if (!coveredDate || coveredDate.getFullYear() !== parseInt(coveredYearFilter)) {
+                    return false;
+                }
+            }
+
+            // Apply "Last Payment Year" filter
+            if (lastPaymentYearFilter !== 'all') {
+                const lastPaymentDate = parseDate(r[SUM.LAST_PAID_DATE]);
+                if (!lastPaymentDate || lastPaymentDate.getFullYear() !== parseInt(lastPaymentYearFilter)) {
+                    return false;
+                }
+            }
+
+            // Apply "Last Payment Month" filter
+            if (lastPaymentMonthFilter !== 'all') {
+                const lastPaymentDate = parseDate(r[SUM.LAST_PAID_DATE]);
+                if (!lastPaymentDate || lastPaymentDate.getMonth() !== parseInt(lastPaymentMonthFilter)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         if (statusFilter === 'prepaid') return pre > 0;
@@ -1919,6 +2010,10 @@ function setupEventListeners() {
 
     $('#paymentStatusFilter').on('change', renderAllPayments);
     $('#neverPaidToggle').on('change', renderAllPayments);
+    $('#oneSessionToggle').on('change', renderAllPayments);
+    $('#coveredYearFilter').on('change', renderAllPayments);
+    $('#lastPaymentYearFilter').on('change', renderAllPayments);
+    $('#lastPaymentMonthFilter').on('change', renderAllPayments);
 
     $('.close-modal, .close-modal-btn').on('click', () => $('#qrModal').hide());
 

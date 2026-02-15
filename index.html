@@ -297,6 +297,34 @@
                     <span style="font-size: 0.9rem; font-weight: 600; color: #495057;">Never Paid Only</span>
                 </label>
             </div>
+
+            <div class="filter-group" id="coveredYearFilterGroup" style="display: none;">
+                <label class="filter-label">Covered Until Year</label>
+                <select id="coveredYearFilter">
+                  <option value="all">All Years</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="lastPaymentFilterGroup" style="display: none;">
+                <label class="filter-label">Last Payment Year</label>
+                <select id="lastPaymentYearFilter">
+                  <option value="all">All Years</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="lastPaymentMonthFilterGroup" style="display: none;">
+                <label class="filter-label">Last Payment Month</label>
+                <select id="lastPaymentMonthFilter">
+                  <option value="all">All Months</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="oneSessionFilterGroup" style="display: none; justify-content: flex-end;">
+                <div style="height: 21px;"></div> <label style="display: flex; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 2px solid #e1e5e9; cursor: pointer;">
+                    <input type="checkbox" id="oneSessionToggle" style="width: auto; margin-right: 8px;">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: #495057;">One Session Only</span>
+                </label>
+            </div>
         </div>
         <div class="table-container">
             <table id="allPaymentsTable">
