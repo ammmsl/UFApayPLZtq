@@ -545,6 +545,10 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     // Convert to array and sort by year descending
     metrics.yearlyData = Object.values(yearlyData).sort((a, b) => b.year - a.year);
 
+    console.log('=== Yearly Data Calculated ===');
+    console.log('Years found:', metrics.yearlyData.map(y => y.year));
+    console.log('Full yearly data:', metrics.yearlyData);
+
     // 9. New Player Acquisition (first-time players this month)
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -1766,7 +1770,13 @@ function renderYearlyDataTable() {
     const yearRangeFilter = $('#yearRangeFilter').val() || 'all';
     const metrics = state.adminMetrics;
 
+    console.log('=== renderYearlyDataTable called ===');
+    console.log('state.adminMetrics:', state.adminMetrics);
+    console.log('metrics:', metrics);
+    console.log('metrics.yearlyData:', metrics?.yearlyData);
+
     if (!metrics || !metrics.yearlyData) {
+        console.log('No metrics or yearlyData found!');
         $('#adminYearlyDataTable').html('<div style="color: #888; text-align: center; padding: 20px;">No data available</div>');
         return;
     }
