@@ -226,39 +226,68 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     // 2. Total Prepaid Liability (sum of all prepaid)
     metrics.totalPrepaid = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.PREPAY]), 0);
 
-    // 3. Operating Cash (Net Liquidity) = Total Player Payments IN - Field Bookings Paid OUT
-    // Calculate from Payments sheet based on payment types
-    let totalPlayerPaymentsIn = 0;
-    let totalFieldBookingsPaidOut = 0;
+    // 3. Operating Cash (Net Liquidity) = Total Player Payments IN - Field Costs (from Session Input)
+    // Financial tracking started July 1st, 2024 - only include data from then onwards
+    const trackingStartDate = new Date(2024, 6, 1); // July 1, 2024
 
-    // Track payment types for debugging
-    const paymentTypeCounts = {};
+    // Total Revenue = ALL player payments (ignore classification system)
+    // Prepay, PostPay, Adjustment all count as revenue. Field Booking is historical only (abandoned).
+    let totalPlayerPaymentsIn = 0;
+    let fieldBookingHistorical = 0;
 
     state.payments.forEach(r => {
         const amount = parseMoney(r[PAY.AMOUNT]);
-        const paymentType = (r[PAY.PREPAYMENT] || '').trim();
-        const paymentTypeLower = paymentType.toLowerCase();
+        const paymentType = (r[PAY.PREPAYMENT] || '').trim().toLowerCase();
+        const paymentDate = parseDate(r[PAY.DATE]);
 
-        // Count payment types for debugging
-        paymentTypeCounts[paymentType] = (paymentTypeCounts[paymentType] || 0) + 1;
+        // Only count payments from tracking start date onwards
+        if (!paymentDate || paymentDate < trackingStartDate) return;
 
-        // Case-insensitive matching for payment types
-        if (paymentTypeLower === 'prepay' || paymentTypeLower === 'postpay') {
+        // Field Booking is historical only (abandoned after centralization)
+        if (paymentType === 'field booking' || paymentType === 'fieldbooking') {
+            fieldBookingHistorical += amount;
+        } else {
+            // Everything else is player revenue (Prepay, PostPay, Adjustment, etc.)
             totalPlayerPaymentsIn += amount;
-        } else if (paymentTypeLower === 'field booking' || paymentTypeLower === 'fieldbooking') {
-            totalFieldBookingsPaidOut += amount;
         }
     });
 
-    // Log payment types found (for debugging)
-    console.log('Payment types found:', paymentTypeCounts);
+    // Field Costs = Sum from Session Input sheet (actual booking costs)
+    // Build a map of date -> field cost from Session Input sheet
+    const fieldCostMap = {};
+    state.sessionInput.forEach(row => {
+        const date = row[SESSION.DATE];
+        const cost = parseMoney(row[SESSION.FIELD_COST]);
+        if (date && cost > 0) {
+            fieldCostMap[date] = cost;
+        }
+    });
 
-    metrics.operatingCash = totalPlayerPaymentsIn - totalFieldBookingsPaidOut;
+    // Calculate total field costs for sessions that happened (from attendance records)
+    let totalFieldCosts = 0;
+    const uniqueDates = new Set(
+        state.attendance
+            .map(r => r[ATT.DATE])
+            .filter(dateStr => {
+                const date = parseDate(dateStr);
+                return date && date >= trackingStartDate;
+            })
+    );
+
+    uniqueDates.forEach(dateStr => {
+        // Use actual field cost from Session Input, or default to SESSION_COST (700 MVR)
+        const cost = fieldCostMap[dateStr] || SESSION_COST;
+        totalFieldCosts += cost;
+    });
+
+    metrics.operatingCash = totalPlayerPaymentsIn - totalFieldCosts;
     metrics.totalRevenue = totalPlayerPaymentsIn;
-    metrics.fieldCostsPaid = totalFieldBookingsPaidOut;
+    metrics.fieldCostsPaid = totalFieldCosts;
 
     // Keep netLiquidity for backward compatibility (same as operatingCash)
     metrics.netLiquidity = metrics.operatingCash;
+
+    console.log(`Field Costs calculation: ${uniqueDates.size} unique sessions × avg ${(totalFieldCosts / uniqueDates.size).toFixed(2)} MVR = ${fmtMoney(totalFieldCosts)}`);
 
     // 3b. Profit Calculation: Surcharges collected from PAID sessions only
     // We need to calculate: Collected Profit, Pending Profit, Potential Profit
@@ -440,9 +469,12 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
 function validateAdminMetrics(metrics) {
     console.log('=== Financial Metrics Validation ===');
 
+    const trackingStartDate = new Date(2024, 6, 1); // July 1, 2024
+
     // Count payments by type for detailed breakdown
     let prepayCount = 0, prepaySum = 0;
     let postpayCount = 0, postpaySum = 0;
+    let adjustmentCount = 0, adjustmentSum = 0;
     let fieldBookingCount = 0, fieldBookingSum = 0;
     let otherCount = 0, otherSum = 0;
 
@@ -450,6 +482,10 @@ function validateAdminMetrics(metrics) {
         const amount = parseMoney(r[PAY.AMOUNT]);
         const paymentType = (r[PAY.PREPAYMENT] || '').trim();
         const paymentTypeLower = paymentType.toLowerCase();
+        const paymentDate = parseDate(r[PAY.DATE]);
+
+        // Only count payments from tracking start date onwards
+        if (!paymentDate || paymentDate < trackingStartDate) return;
 
         if (paymentTypeLower === 'prepay') {
             prepayCount++;
@@ -457,6 +493,9 @@ function validateAdminMetrics(metrics) {
         } else if (paymentTypeLower === 'postpay') {
             postpayCount++;
             postpaySum += amount;
+        } else if (paymentTypeLower === 'adjustment') {
+            adjustmentCount++;
+            adjustmentSum += amount;
         } else if (paymentTypeLower === 'field booking' || paymentTypeLower === 'fieldbooking') {
             fieldBookingCount++;
             fieldBookingSum += amount;
@@ -464,31 +503,57 @@ function validateAdminMetrics(metrics) {
             otherCount++;
             otherSum += amount;
             if (amount > 0) {
-                console.log(`⚠️ Unclassified payment: Type="${paymentType}", Amount=${fmtMoney(amount)}`);
+                console.log(`⚠️ Unknown payment type: "${paymentType}", Amount=${fmtMoney(amount)}`);
             }
         }
     });
 
-    console.log('\n=== Payment Breakdown ===');
-    console.log(`Prepay:        ${prepayCount} payments = ${fmtMoney(prepaySum)}`);
-    console.log(`PostPay:       ${postpayCount} payments = ${fmtMoney(postpaySum)}`);
-    console.log(`Field Booking: ${fieldBookingCount} payments = ${fmtMoney(fieldBookingSum)}`);
+    console.log('\n=== Payment Breakdown (since July 1, 2024) ===');
+    console.log(`Prepay:             ${prepayCount} payments = ${fmtMoney(prepaySum)}`);
+    console.log(`PostPay:            ${postpayCount} payments = ${fmtMoney(postpaySum)}`);
+    console.log(`Adjustment:         ${adjustmentCount} payments = ${fmtMoney(adjustmentSum)}`);
+    console.log(`Field Booking:      ${fieldBookingCount} payments = ${fmtMoney(fieldBookingSum)} (historical, abandoned)`);
     if (otherCount > 0) {
-        console.log(`Other/Unknown: ${otherCount} payments = ${fmtMoney(otherSum)}`);
+        console.log(`Other/Unknown:      ${otherCount} payments = ${fmtMoney(otherSum)}`);
     }
-    console.log(`Total Player Revenue: ${fmtMoney(prepaySum + postpaySum)}`);
+    console.log(`─────────────────────────────────────────────────────`);
+    console.log(`Total Player Revenue: ${fmtMoney(prepaySum + postpaySum + adjustmentSum)}`);
+    console.log(`(All payments except historical Field Booking)`);
+
+    // Count sessions and field costs
+    const uniqueDates = new Set(
+        state.attendance
+            .map(r => r[ATT.DATE])
+            .filter(dateStr => {
+                const date = parseDate(dateStr);
+                return date && date >= trackingStartDate;
+            })
+    );
+    console.log(`\n=== Field Costs (from Session Input) ===`);
+    console.log(`Total Sessions: ${uniqueDates.size} sessions`);
+    console.log(`Avg Cost per Session: ${fmtMoney(metrics.fieldCostsPaid / uniqueDates.size)}`);
+    console.log(`Total Field Costs: ${fmtMoney(metrics.fieldCostsPaid)}`);
 
     // Validation 1: Operating Cash Formula
     const expectedOperatingCash = metrics.totalRevenue - metrics.fieldCostsPaid;
     const operatingCashDiff = Math.abs(metrics.operatingCash - expectedOperatingCash);
     console.log(`\n=== Operating Cash Validation ===`);
     console.log(`Operating Cash: ${fmtMoney(metrics.operatingCash)}`);
-    console.log(`  = Total Revenue (${fmtMoney(metrics.totalRevenue)}) - Field Costs Paid (${fmtMoney(metrics.fieldCostsPaid)})`);
+    console.log(`  = Total Revenue (${fmtMoney(metrics.totalRevenue)}) - Field Costs (${fmtMoney(metrics.fieldCostsPaid)})`);
     console.log(`  Expected: ${fmtMoney(expectedOperatingCash)}, Diff: ${fmtMoney(operatingCashDiff)}`);
     if (operatingCashDiff > 0.01) {
         console.warn('⚠️ Operating Cash does not balance!');
     } else {
         console.log('✓ Operating Cash balances correctly');
+    }
+
+    // Show if operating at profit or loss
+    if (metrics.operatingCash > 0) {
+        console.log(`✓ Operating with surplus: ${fmtMoney(metrics.operatingCash)}`);
+    } else if (metrics.operatingCash < 0) {
+        console.log(`⚠️ Operating at deficit: ${fmtMoney(Math.abs(metrics.operatingCash))}`);
+    } else {
+        console.log(`Operating at break-even`);
     }
 
     // Validation 2: Profit Formula

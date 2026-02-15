@@ -224,7 +224,7 @@
 
         <!-- Additional Metrics Row -->
         <div class="admin-row admin-row-metrics">
-          <div class="admin-metric-card has-tooltip" data-tooltip="Available cash for operations. Calculated as: All player payments received minus all field bookings paid to field owner.">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Available cash for operations. Calculated as: All player payments received (Prepay + PostPay + Adjustments) minus field costs from Session Input sheet.">
             <div class="admin-metric-label">Operating Cash</div>
             <div class="admin-metric-value" id="adminOperatingCash">0 MVR</div>
             <div class="admin-metric-description">Cash Available</div>
@@ -264,15 +264,15 @@
             <div class="admin-metric-value" id="adminPotentialProfit">0 MVR</div>
             <div class="admin-metric-description">If All Paid</div>
           </div>
-          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all Prepay and PostPay payments received from players. This represents total revenue collected from player payments.">
+          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all player payments (Prepay + PostPay + Adjustments). Excludes historical Field Booking payments which were abandoned after centralization.">
             <div class="admin-metric-label">Total Revenue</div>
             <div class="admin-metric-value" id="adminTotalRevenue">0 MVR</div>
             <div class="admin-metric-description">Player Payments In</div>
           </div>
-          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all Field Booking payments made to field owners. This represents total field costs paid out.">
-            <div class="admin-metric-label">Field Costs Paid</div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Total field booking costs from Session Input sheet. Calculated from actual sessions that happened, not from payment records.">
+            <div class="admin-metric-label">Field Costs</div>
             <div class="admin-metric-value" id="adminFieldCostsPaid">0 MVR</div>
-            <div class="admin-metric-description">Bookings Paid Out</div>
+            <div class="admin-metric-description">Session Bookings</div>
           </div>
         </div>
       </div>
