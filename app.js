@@ -231,16 +231,27 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     let totalPlayerPaymentsIn = 0;
     let totalFieldBookingsPaidOut = 0;
 
+    // Track payment types for debugging
+    const paymentTypeCounts = {};
+
     state.payments.forEach(r => {
         const amount = parseMoney(r[PAY.AMOUNT]);
         const paymentType = (r[PAY.PREPAYMENT] || '').trim();
+        const paymentTypeLower = paymentType.toLowerCase();
 
-        if (paymentType === 'Prepay' || paymentType === 'PostPay') {
+        // Count payment types for debugging
+        paymentTypeCounts[paymentType] = (paymentTypeCounts[paymentType] || 0) + 1;
+
+        // Case-insensitive matching for payment types
+        if (paymentTypeLower === 'prepay' || paymentTypeLower === 'postpay') {
             totalPlayerPaymentsIn += amount;
-        } else if (paymentType === 'Field Booking') {
+        } else if (paymentTypeLower === 'field booking' || paymentTypeLower === 'fieldbooking') {
             totalFieldBookingsPaidOut += amount;
         }
     });
+
+    // Log payment types found (for debugging)
+    console.log('Payment types found:', paymentTypeCounts);
 
     metrics.operatingCash = totalPlayerPaymentsIn - totalFieldBookingsPaidOut;
     metrics.totalRevenue = totalPlayerPaymentsIn;
@@ -429,9 +440,48 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
 function validateAdminMetrics(metrics) {
     console.log('=== Financial Metrics Validation ===');
 
+    // Count payments by type for detailed breakdown
+    let prepayCount = 0, prepaySum = 0;
+    let postpayCount = 0, postpaySum = 0;
+    let fieldBookingCount = 0, fieldBookingSum = 0;
+    let otherCount = 0, otherSum = 0;
+
+    state.payments.forEach(r => {
+        const amount = parseMoney(r[PAY.AMOUNT]);
+        const paymentType = (r[PAY.PREPAYMENT] || '').trim();
+        const paymentTypeLower = paymentType.toLowerCase();
+
+        if (paymentTypeLower === 'prepay') {
+            prepayCount++;
+            prepaySum += amount;
+        } else if (paymentTypeLower === 'postpay') {
+            postpayCount++;
+            postpaySum += amount;
+        } else if (paymentTypeLower === 'field booking' || paymentTypeLower === 'fieldbooking') {
+            fieldBookingCount++;
+            fieldBookingSum += amount;
+        } else {
+            otherCount++;
+            otherSum += amount;
+            if (amount > 0) {
+                console.log(`⚠️ Unclassified payment: Type="${paymentType}", Amount=${fmtMoney(amount)}`);
+            }
+        }
+    });
+
+    console.log('\n=== Payment Breakdown ===');
+    console.log(`Prepay:        ${prepayCount} payments = ${fmtMoney(prepaySum)}`);
+    console.log(`PostPay:       ${postpayCount} payments = ${fmtMoney(postpaySum)}`);
+    console.log(`Field Booking: ${fieldBookingCount} payments = ${fmtMoney(fieldBookingSum)}`);
+    if (otherCount > 0) {
+        console.log(`Other/Unknown: ${otherCount} payments = ${fmtMoney(otherSum)}`);
+    }
+    console.log(`Total Player Revenue: ${fmtMoney(prepaySum + postpaySum)}`);
+
     // Validation 1: Operating Cash Formula
     const expectedOperatingCash = metrics.totalRevenue - metrics.fieldCostsPaid;
     const operatingCashDiff = Math.abs(metrics.operatingCash - expectedOperatingCash);
+    console.log(`\n=== Operating Cash Validation ===`);
     console.log(`Operating Cash: ${fmtMoney(metrics.operatingCash)}`);
     console.log(`  = Total Revenue (${fmtMoney(metrics.totalRevenue)}) - Field Costs Paid (${fmtMoney(metrics.fieldCostsPaid)})`);
     console.log(`  Expected: ${fmtMoney(expectedOperatingCash)}, Diff: ${fmtMoney(operatingCashDiff)}`);
@@ -460,8 +510,21 @@ function validateAdminMetrics(metrics) {
     console.log(`Collected Profit >= 0: ${metrics.collectedProfit >= 0 ? '✓' : '✗'} (${fmtMoney(metrics.collectedProfit)})`);
     console.log(`Collected Profit < Operating Cash: ${metrics.collectedProfit < metrics.operatingCash ? '✓' : '✗'}`);
 
+    // Show sample payment records to verify column structure
+    console.log('\n=== Sample Payment Records (first 3) ===');
+    const samplePayments = state.payments.slice(0, 3);
+    samplePayments.forEach((p, idx) => {
+        console.log(`Payment ${idx + 1}:`, {
+            Date: p[PAY.DATE],
+            Name: p[PAY.NAME],
+            Amount: p[PAY.AMOUNT],
+            PaymentType: p[PAY.PREPAYMENT],
+            Reference: p[PAY.REFERENCE]
+        });
+    });
+
     // Log all key metrics for review
-    console.log('\n=== Summary ===');
+    console.log('\n=== Financial Summary ===');
     console.log(`Total Revenue: ${fmtMoney(metrics.totalRevenue)}`);
     console.log(`Field Costs Paid: ${fmtMoney(metrics.fieldCostsPaid)}`);
     console.log(`Operating Cash: ${fmtMoney(metrics.operatingCash)}`);
