@@ -1711,6 +1711,9 @@ function renderAdminDashboard() {
 
     const metrics = calculateAdminMetrics(chartTimePeriod, chartBinning);
 
+    // Store metrics in state so other functions can access them
+    state.adminMetrics = metrics;
+
     // Validate metrics (logs to console)
     validateAdminMetrics(metrics);
 
@@ -1768,14 +1771,12 @@ function renderYearlyDataTable() {
         return;
     }
 
-    // Filter data based on year range
+    // Filter data based on selected year
     let data = [...metrics.yearlyData];
-    const currentYear = new Date().getFullYear();
 
     if (yearRangeFilter !== 'all') {
-        const yearsBack = parseInt(yearRangeFilter);
-        const minYear = currentYear - yearsBack + 1;
-        data = data.filter(d => d.year >= minYear);
+        const selectedYear = parseInt(yearRangeFilter);
+        data = data.filter(d => d.year === selectedYear);
     }
 
     // Generate table HTML
