@@ -294,6 +294,36 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     let collectedProfit = 0;
     let pendingProfit = 0;
 
+    // Debug: Check attendance record structure and surcharge values
+    console.log('\n=== Attendance Record Debug (first 3 records) ===');
+    const sampleAttendance = state.attendance.slice(0, 3);
+    sampleAttendance.forEach((att, idx) => {
+        console.log(`Attendance ${idx + 1}:`, {
+            Name: att[ATT.NAME],
+            Date: att[ATT.DATE],
+            Cost: att[ATT.COST],
+            Membership: att[ATT.MEMBERSHIP],
+            'Surcharge (index 7)': att[ATT.SURCHARGE],
+            'Full record length': att.length,
+            'All values': att
+        });
+    });
+
+    // Count non-zero surcharges
+    let nonZeroSurcharges = 0;
+    let totalSurchargeSum = 0;
+    state.attendance.forEach(r => {
+        const surcharge = parseMoney(r[ATT.SURCHARGE] || 0);
+        if (surcharge > 0) {
+            nonZeroSurcharges++;
+            totalSurchargeSum += surcharge;
+        }
+    });
+    console.log(`\n=== Surcharge Summary ===`);
+    console.log(`Total attendance records: ${state.attendance.length}`);
+    console.log(`Records with non-zero surcharge: ${nonZeroSurcharges}`);
+    console.log(`Total surcharges in attendance: ${fmtMoney(totalSurchargeSum)}`);
+
     // For each user, get their financial ledger and calculate surcharges
     state.users.forEach(userName => {
         const ledger = calculateFinancialLedger(userName);
@@ -321,6 +351,10 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
             }
         });
     });
+
+    console.log(`\n=== Profit Calculation Results ===`);
+    console.log(`Collected Profit (from paid sessions): ${fmtMoney(collectedProfit)}`);
+    console.log(`Pending Profit (from unpaid/partial sessions): ${fmtMoney(pendingProfit)}`);
 
     metrics.collectedProfit = collectedProfit;
     metrics.pendingProfit = pendingProfit;
