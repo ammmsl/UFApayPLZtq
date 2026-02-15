@@ -25,8 +25,12 @@ const $ = (selector) => {
 
 // --- Column index constants ---
 
-const ATT = { NAME: 0, LOCATION: 1, MONTH: 2, DATE: 3, COST: 4, MEMBERSHIP: 6 };
+// NOTE: Column indices discovered from actual Google Sheets structure
+// PivotAttendance: Name, Location, Month, Date, Cost Per, [Player ID], Membership, Surcharge
+const ATT = { NAME: 0, LOCATION: 1, MONTH: 2, DATE: 3, COST: 4, PLAYER_ID: 5, MEMBERSHIP: 6, SURCHARGE: 7 };
 const SUM = { NAME: 1, PENDING: 2, PREPAY: 3, TOTAL: 4, LAST_PAID_DATE: 7, LAST_PAID_AMT: 8, COVERED_UNTIL: 9 };
+// Payments sheet: DATE, NAME, PLAYER_ID, COMMENT, REFERENCE, TXN_DATE, FROM, TO, ACCOUNT, AMOUNT, REMARKS, PREPAYMENT
+// PREPAYMENT column values: "Prepay", "PostPay", "Field Booking"
 const PAY = { DATE: 0, NAME: 1, PLAYER_ID: 2, COMMENT: 3, REFERENCE: 4, TXN_DATE: 5, FROM: 6, TO: 7, ACCOUNT: 8, AMOUNT: 9, REMARKS: 10, PREPAYMENT: 11 };
 const SESSION = { DATE: 0, FIELD_COST: 6 }; // Session Input sheet: Column A = Date, Column G = Field Booking Cost
 
@@ -222,30 +226,68 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     // 2. Total Prepaid Liability (sum of all prepaid)
     metrics.totalPrepaid = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.PREPAY]), 0);
 
-    // 3. Net Association Liquidity (total collected)
-    metrics.netLiquidity = state.summary.reduce((sum, r) => sum + parseMoney(r[SUM.TOTAL]), 0);
+    // 3. Operating Cash (Net Liquidity) = Total Player Payments IN - Field Bookings Paid OUT
+    // Calculate from Payments sheet based on payment types
+    let totalPlayerPaymentsIn = 0;
+    let totalFieldBookingsPaidOut = 0;
 
-    // 3b. Total Profit (revenue - actual session costs)
-    // Build a map of date -> field cost from Session Input sheet
-    const fieldCostMap = {};
-    state.sessionInput.forEach(row => {
-        const date = row[SESSION.DATE];
-        const cost = parseMoney(row[SESSION.FIELD_COST]);
-        if (date && cost > 0) {
-            fieldCostMap[date] = cost;
+    state.payments.forEach(r => {
+        const amount = parseMoney(r[PAY.AMOUNT]);
+        const paymentType = (r[PAY.PREPAYMENT] || '').trim();
+
+        if (paymentType === 'Prepay' || paymentType === 'PostPay') {
+            totalPlayerPaymentsIn += amount;
+        } else if (paymentType === 'Field Booking') {
+            totalFieldBookingsPaidOut += amount;
         }
     });
 
-    // Calculate total costs by matching attendance dates to field costs
-    let totalCosts = 0;
-    const uniqueDates = new Set(state.attendance.map(r => r[ATT.DATE]));
-    uniqueDates.forEach(date => {
-        // Try to find exact match or fallback to SESSION_COST
-        const cost = fieldCostMap[date] || SESSION_COST;
-        totalCosts += cost;
+    metrics.operatingCash = totalPlayerPaymentsIn - totalFieldBookingsPaidOut;
+    metrics.totalRevenue = totalPlayerPaymentsIn;
+    metrics.fieldCostsPaid = totalFieldBookingsPaidOut;
+
+    // Keep netLiquidity for backward compatibility (same as operatingCash)
+    metrics.netLiquidity = metrics.operatingCash;
+
+    // 3b. Profit Calculation: Surcharges collected from PAID sessions only
+    // We need to calculate: Collected Profit, Pending Profit, Potential Profit
+    let collectedProfit = 0;
+    let pendingProfit = 0;
+
+    // For each user, get their financial ledger and calculate surcharges
+    state.users.forEach(userName => {
+        const ledger = calculateFinancialLedger(userName);
+
+        // For each session in the ledger, find the attendance record and get surcharge
+        ledger.sessions.forEach(session => {
+            // Find the matching attendance record(s) for this session
+            const attendanceRecords = state.attendance.filter(r =>
+                r[ATT.NAME] === userName &&
+                r[ATT.DATE] === session.dateStr
+            );
+
+            // Sum up surcharges for this session (handles multiple records on same date if any)
+            let sessionSurcharge = 0;
+            attendanceRecords.forEach(attRec => {
+                const surcharge = parseMoney(attRec[ATT.SURCHARGE] || 0);
+                sessionSurcharge += surcharge;
+            });
+
+            // Add to appropriate profit bucket based on payment status
+            if (session.status === 'paid') {
+                collectedProfit += sessionSurcharge;
+            } else if (session.status === 'unpaid' || session.status === 'partial') {
+                pendingProfit += sessionSurcharge;
+            }
+        });
     });
 
-    metrics.totalProfit = metrics.netLiquidity - totalCosts;
+    metrics.collectedProfit = collectedProfit;
+    metrics.pendingProfit = pendingProfit;
+    metrics.potentialProfit = collectedProfit + pendingProfit;
+
+    // Keep totalProfit for backward compatibility (use collectedProfit as the main metric)
+    metrics.totalProfit = metrics.collectedProfit;
 
     // 4. Active Players (attended in last 30 days)
     const thirtyDaysAgo = new Date();
@@ -382,6 +424,51 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
     metrics.chartAttendance = chartData.attendance;
 
     return metrics;
+}
+
+function validateAdminMetrics(metrics) {
+    console.log('=== Financial Metrics Validation ===');
+
+    // Validation 1: Operating Cash Formula
+    const expectedOperatingCash = metrics.totalRevenue - metrics.fieldCostsPaid;
+    const operatingCashDiff = Math.abs(metrics.operatingCash - expectedOperatingCash);
+    console.log(`Operating Cash: ${fmtMoney(metrics.operatingCash)}`);
+    console.log(`  = Total Revenue (${fmtMoney(metrics.totalRevenue)}) - Field Costs Paid (${fmtMoney(metrics.fieldCostsPaid)})`);
+    console.log(`  Expected: ${fmtMoney(expectedOperatingCash)}, Diff: ${fmtMoney(operatingCashDiff)}`);
+    if (operatingCashDiff > 0.01) {
+        console.warn('⚠️ Operating Cash does not balance!');
+    } else {
+        console.log('✓ Operating Cash balances correctly');
+    }
+
+    // Validation 2: Profit Formula
+    const expectedPotentialProfit = metrics.collectedProfit + metrics.pendingProfit;
+    const profitDiff = Math.abs(metrics.potentialProfit - expectedPotentialProfit);
+    console.log(`\nPotential Profit: ${fmtMoney(metrics.potentialProfit)}`);
+    console.log(`  = Collected Profit (${fmtMoney(metrics.collectedProfit)}) + Pending Profit (${fmtMoney(metrics.pendingProfit)})`);
+    console.log(`  Expected: ${fmtMoney(expectedPotentialProfit)}, Diff: ${fmtMoney(profitDiff)}`);
+    if (profitDiff > 0.01) {
+        console.warn('⚠️ Potential Profit does not balance!');
+    } else {
+        console.log('✓ Potential Profit balances correctly');
+    }
+
+    // Validation 3: Sanity Checks
+    console.log('\n=== Sanity Checks ===');
+    console.log(`Operating Cash > 0: ${metrics.operatingCash > 0 ? '✓' : '✗'} (${fmtMoney(metrics.operatingCash)})`);
+    console.log(`Operating Cash < Total Revenue: ${metrics.operatingCash < metrics.totalRevenue ? '✓' : '✗'}`);
+    console.log(`Collected Profit >= 0: ${metrics.collectedProfit >= 0 ? '✓' : '✗'} (${fmtMoney(metrics.collectedProfit)})`);
+    console.log(`Collected Profit < Operating Cash: ${metrics.collectedProfit < metrics.operatingCash ? '✓' : '✗'}`);
+
+    // Log all key metrics for review
+    console.log('\n=== Summary ===');
+    console.log(`Total Revenue: ${fmtMoney(metrics.totalRevenue)}`);
+    console.log(`Field Costs Paid: ${fmtMoney(metrics.fieldCostsPaid)}`);
+    console.log(`Operating Cash: ${fmtMoney(metrics.operatingCash)}`);
+    console.log(`Collected Profit: ${fmtMoney(metrics.collectedProfit)}`);
+    console.log(`Pending Profit: ${fmtMoney(metrics.pendingProfit)}`);
+    console.log(`Potential Profit: ${fmtMoney(metrics.potentialProfit)}`);
+    console.log('=====================================\n');
 }
 
 function calculateChartData(timePeriod, binning) {
@@ -1267,19 +1354,26 @@ function renderAdminDashboard() {
 
     const metrics = calculateAdminMetrics(chartTimePeriod, chartBinning);
 
+    // Validate metrics (logs to console)
+    validateAdminMetrics(metrics);
+
     // Top row tiles
     $('#adminTotalPending').text(fmtMoney(metrics.totalPending));
     $('#adminTotalPrepaid').text(fmtMoney(metrics.totalPrepaid));
     $('#adminActivePlayers').text(metrics.activePlayers);
-    $('#adminTotalProfit').text(fmtMoney(metrics.totalProfit));
+    $('#adminTotalProfit').text(fmtMoney(metrics.collectedProfit)); // Changed to collectedProfit
 
     // Additional metrics
-    $('#adminNetLiquidity').text(fmtMoney(metrics.netLiquidity));
+    $('#adminOperatingCash').text(fmtMoney(metrics.operatingCash));
     $('#adminAvgAttendance').text(metrics.avgAttendance);
     $('#adminPaymentVelocity').text(`${metrics.paymentVelocity} days`);
     $('#adminRetentionRate').text(`${metrics.retentionRate}%`);
     $('#adminNewPlayers').text(metrics.newPlayers);
     $('#adminRevenueTrend').text(metrics.revenueTrend);
+    $('#adminPendingProfit').text(fmtMoney(metrics.pendingProfit));
+    $('#adminPotentialProfit').text(fmtMoney(metrics.potentialProfit));
+    $('#adminTotalRevenue').text(fmtMoney(metrics.totalRevenue));
+    $('#adminFieldCostsPaid').text(fmtMoney(metrics.fieldCostsPaid));
 
     // Top 10 Debtors List
     const debtorsHtml = metrics.topDebtors.length > 0

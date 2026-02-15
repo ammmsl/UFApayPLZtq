@@ -165,10 +165,10 @@
             <div class="admin-tile-value" id="adminActivePlayers">0</div>
             <div class="admin-tile-sublabel">Last 30 Days</div>
           </div>
-          <div class="admin-tile admin-tile-purple has-tooltip" data-tooltip="Total revenue collected minus actual field booking costs from Session Input sheet. Positive values indicate profit, negative values indicate operating at a loss.">
-            <div class="admin-tile-label">Total Profit</div>
+          <div class="admin-tile admin-tile-purple has-tooltip" data-tooltip="Surcharges collected from paid sessions only. This covers equipment wear and tear, not field booking costs.">
+            <div class="admin-tile-label">Collected Profit</div>
             <div class="admin-tile-value" id="adminTotalProfit">0 MVR</div>
-            <div class="admin-tile-sublabel">Revenue - Costs</div>
+            <div class="admin-tile-sublabel">From Paid Sessions</div>
           </div>
         </div>
 
@@ -224,10 +224,10 @@
 
         <!-- Additional Metrics Row -->
         <div class="admin-row admin-row-metrics">
-          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all payments received from players. This represents total revenue collected to date.">
-            <div class="admin-metric-label">Net Liquidity</div>
-            <div class="admin-metric-value" id="adminNetLiquidity">0 MVR</div>
-            <div class="admin-metric-description">Total Collected</div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Available cash for operations. Calculated as: All player payments received minus all field bookings paid to field owner.">
+            <div class="admin-metric-label">Operating Cash</div>
+            <div class="admin-metric-value" id="adminOperatingCash">0 MVR</div>
+            <div class="admin-metric-description">Cash Available</div>
           </div>
           <div class="admin-metric-card has-tooltip" data-tooltip="Total attendance records divided by the number of unique session dates. Helps determine optimal field booking sizes.">
             <div class="admin-metric-label">Avg Attendance</div>
@@ -253,6 +253,26 @@
             <div class="admin-metric-label">Revenue Trend</div>
             <div class="admin-metric-value" id="adminRevenueTrend">--</div>
             <div class="admin-metric-description">vs Last Week</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Surcharges from unpaid sessions that we've billed but not collected yet. Represents potential profit if all pending sessions get paid.">
+            <div class="admin-metric-label">Pending Profit</div>
+            <div class="admin-metric-value" id="adminPendingProfit">0 MVR</div>
+            <div class="admin-metric-description">From Unpaid Sessions</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Total profit if all pending sessions get paid. Calculated as: Collected Profit + Pending Profit.">
+            <div class="admin-metric-label">Potential Profit</div>
+            <div class="admin-metric-value" id="adminPotentialProfit">0 MVR</div>
+            <div class="admin-metric-description">If All Paid</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all Prepay and PostPay payments received from players. This represents total revenue collected from player payments.">
+            <div class="admin-metric-label">Total Revenue</div>
+            <div class="admin-metric-value" id="adminTotalRevenue">0 MVR</div>
+            <div class="admin-metric-description">Player Payments In</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all Field Booking payments made to field owners. This represents total field costs paid out.">
+            <div class="admin-metric-label">Field Costs Paid</div>
+            <div class="admin-metric-value" id="adminFieldCostsPaid">0 MVR</div>
+            <div class="admin-metric-description">Bookings Paid Out</div>
           </div>
         </div>
       </div>
