@@ -217,8 +217,32 @@
             </div>
           </div>
           <div class="admin-tile-large">
-            <div class="card-title" style="margin: 0 0 15px 0;">🎯 Top 10 Debtors</div>
-            <div id="adminTopDebtors" class="top-debtors-list"></div>
+            <div class="tab-header">
+              <button class="tab-btn active" data-tab="topDebtors">🎯 Top Debtors</button>
+              <button class="tab-btn" data-tab="yearlyData">📊 Yearly Data</button>
+            </div>
+
+            <!-- Tab: Top 10 Debtors -->
+            <div id="tabTopDebtors" class="tab-content active">
+              <div id="adminTopDebtors" class="top-debtors-list"></div>
+            </div>
+
+            <!-- Tab: Yearly Financial Data -->
+            <div id="tabYearlyData" class="tab-content">
+              <div class="filters" style="margin-bottom: 15px; padding: 15px; gap: 10px;">
+                <div class="filter-group">
+                  <label class="filter-label">Year Range</label>
+                  <select id="yearRangeFilter" class="filter-select">
+                    <option value="all">All Years</option>
+                    <option value="1">Last 1 Year</option>
+                    <option value="2">Last 2 Years</option>
+                    <option value="3">Last 3 Years</option>
+                    <option value="5">Last 5 Years</option>
+                  </select>
+                </div>
+              </div>
+              <div id="adminYearlyDataTable" class="yearly-data-table"></div>
+            </div>
           </div>
         </div>
 

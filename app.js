@@ -452,6 +452,94 @@ function calculateAdminMetrics(chartTimePeriod = 90, chartBinning = 'weekly') {
         .slice(0, 10);
     metrics.topDebtors = debtors;
 
+    // 8b. Calculate Yearly Financial Data
+    const yearlyData = {};
+
+    // Aggregate payments by year for Revenue
+    state.payments.forEach(r => {
+        const date = parseDate(r[PAY.DATE]);
+        if (!date) return;
+
+        const year = date.getFullYear();
+        const amount = parseMoney(r[PAY.AMOUNT]);
+
+        // Initialize year if not exists
+        if (!yearlyData[year]) {
+            yearlyData[year] = {
+                year: year,
+                revenue: 0,
+                profit: 0,
+                fieldCosts: 0
+            };
+        }
+
+        // Count only player payments (Prepay, PostPay, Adjustment classes)
+        const classification = getPaymentClassification(r);
+        if (classification === 'Prepay' || classification === 'PostPay' || classification === 'Adjustment') {
+            yearlyData[year].revenue += amount;
+        }
+    });
+
+    // Aggregate attendance by year for Profit
+    state.attendance.forEach(r => {
+        const date = parseDate(r[ATT.DATE]);
+        if (!date) return;
+
+        const year = date.getFullYear();
+        const surcharge = parseMoney(r[ATT.SURCHARGE] || 0);
+
+        // Initialize year if not exists
+        if (!yearlyData[year]) {
+            yearlyData[year] = {
+                year: year,
+                revenue: 0,
+                profit: 0,
+                fieldCosts: 0
+            };
+        }
+
+        // Sum up surcharges for profit
+        yearlyData[year].profit += surcharge;
+    });
+
+    // Aggregate field costs by year
+    state.attendance.forEach(r => {
+        const date = parseDate(r[ATT.DATE]);
+        if (!date) return;
+
+        const year = date.getFullYear();
+        const dateStr = r[ATT.DATE];
+
+        // Initialize year if not exists
+        if (!yearlyData[year]) {
+            yearlyData[year] = {
+                year: year,
+                revenue: 0,
+                profit: 0,
+                fieldCosts: 0
+            };
+        }
+
+        // Get field cost for this session
+        const cost = fieldCostMap[dateStr] || SESSION_COST;
+
+        // Track unique dates to avoid double counting
+        if (!yearlyData[year].sessionDates) {
+            yearlyData[year].sessionDates = new Set();
+        }
+
+        if (!yearlyData[year].sessionDates.has(dateStr)) {
+            yearlyData[year].sessionDates.add(dateStr);
+            yearlyData[year].fieldCosts += cost;
+        }
+    });
+
+    // Clean up temporary sessionDates tracking
+    Object.values(yearlyData).forEach(y => delete y.sessionDates);
+
+    // Convert to array and sort by year descending
+    metrics.yearlyData = Object.values(yearlyData).sort((a, b) => b.year - a.year);
+
     // 9. New Player Acquisition (first-time players this month)
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -1654,6 +1742,9 @@ function renderAdminDashboard() {
 
     $('#adminTopDebtors').html(debtorsHtml);
 
+    // Render Yearly Financial Data Table
+    renderYearlyDataTable();
+
     // Render all charts (only the active one will be visible)
     renderAdminRevenueChart(metrics);
     renderAdminVelocityChart(chartTimePeriod, chartBinning);
@@ -1661,6 +1752,81 @@ function renderAdminDashboard() {
 
     // Render the "All Data" table within admin panel
     renderAllPayments();
+}
+
+function renderYearlyDataTable() {
+    const yearRangeFilter = $('#yearRangeFilter').val() || 'all';
+    const metrics = state.adminMetrics;
+
+    if (!metrics || !metrics.yearlyData) {
+        $('#adminYearlyDataTable').html('<div style="color: #888; text-align: center; padding: 20px;">No data available</div>');
+        return;
+    }
+
+    // Filter data based on year range
+    let data = [...metrics.yearlyData];
+    const currentYear = new Date().getFullYear();
+
+    if (yearRangeFilter !== 'all') {
+        const yearsBack = parseInt(yearRangeFilter);
+        const minYear = currentYear - yearsBack + 1;
+        data = data.filter(d => d.year >= minYear);
+    }
+
+    // Generate table HTML
+    if (data.length === 0) {
+        $('#adminYearlyDataTable').html('<div style="color: #888; text-align: center; padding: 20px;">No data for selected period</div>');
+        return;
+    }
+
+    // Calculate totals
+    let totalRevenue = 0, totalProfit = 0, totalFieldCosts = 0;
+    data.forEach(d => {
+        totalRevenue += d.revenue;
+        totalProfit += d.profit;
+        totalFieldCosts += d.fieldCosts;
+    });
+
+    const tableHtml = `
+        <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: #f8f9fa; z-index: 1;">
+                    <tr>
+                        <th style="text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Year</th>
+                        <th style="text-align: right; padding: 12px; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Revenue</th>
+                        <th style="text-align: right; padding: 12px; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Profit</th>
+                        <th style="text-align: right; padding: 12px; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Field Costs</th>
+                        <th style="text-align: right; padding: 12px; border-bottom: 2px solid #dee2e6; font-weight: 600; color: #495057;">Net</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(d => {
+                        const net = d.revenue - d.fieldCosts;
+                        return `
+                            <tr style="border-bottom: 1px solid #e9ecef;">
+                                <td style="padding: 10px; font-weight: 600;">${d.year}</td>
+                                <td style="padding: 10px; text-align: right; color: #28a745;">${fmtMoney(d.revenue)}</td>
+                                <td style="padding: 10px; text-align: right; color: #17a2b8;">${fmtMoney(d.profit)}</td>
+                                <td style="padding: 10px; text-align: right; color: #dc3545;">${fmtMoney(d.fieldCosts)}</td>
+                                <td style="padding: 10px; text-align: right; font-weight: 600; color: ${net >= 0 ? '#28a745' : '#dc3545'};">${fmtMoney(net)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+                <tfoot style="background: #f8f9fa; font-weight: bold; border-top: 2px solid #495057;">
+                    <tr>
+                        <td style="padding: 12px;">Total</td>
+                        <td style="padding: 12px; text-align: right; color: #28a745;">${fmtMoney(totalRevenue)}</td>
+                        <td style="padding: 12px; text-align: right; color: #17a2b8;">${fmtMoney(totalProfit)}</td>
+                        <td style="padding: 12px; text-align: right; color: #dc3545;">${fmtMoney(totalFieldCosts)}</td>
+                        <td style="padding: 12px; text-align: right; color: ${(totalRevenue - totalFieldCosts) >= 0 ? '#28a745' : '#dc3545'};">${fmtMoney(totalRevenue - totalFieldCosts)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+
+    $('#adminYearlyDataTable').html(tableHtml);
 }
 
 function renderAdminRevenueChart(metrics) {
@@ -1994,15 +2160,33 @@ function setupEventListeners() {
     // Tab switching
     $('.tab-btn').on('click', function() {
         const tab = this.getAttribute('data-tab');
-        $('.tab-btn').removeClass('active');
-        $(this).addClass('active');
-        $('#tabPaymentSummary').el.classList.toggle('active', tab === 'paymentSummary');
-        $('#tabActivityOverview').el.classList.toggle('active', tab === 'activityOverview');
+        const parent = this.closest('.tab-header');
 
-        // Render activity chart when its tab becomes visible (canvas must be visible)
-        if (tab === 'activityOverview' && state.currentUser) {
-            const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
-            renderActivityChart(userRows);
+        // Remove active class from sibling buttons only
+        parent.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+
+        // Handle user dashboard tabs
+        if (tab === 'paymentSummary' || tab === 'activityOverview') {
+            $('#tabPaymentSummary').el.classList.toggle('active', tab === 'paymentSummary');
+            $('#tabActivityOverview').el.classList.toggle('active', tab === 'activityOverview');
+
+            // Render activity chart when its tab becomes visible (canvas must be visible)
+            if (tab === 'activityOverview' && state.currentUser) {
+                const userRows = state.attendance.filter(r => r[ATT.NAME] === state.currentUser);
+                renderActivityChart(userRows);
+            }
+        }
+
+        // Handle admin debtors/yearly data tabs
+        if (tab === 'topDebtors' || tab === 'yearlyData') {
+            $('#tabTopDebtors').el.classList.toggle('active', tab === 'topDebtors');
+            $('#tabYearlyData').el.classList.toggle('active', tab === 'yearlyData');
+
+            // Render yearly data table when tab becomes visible
+            if (tab === 'yearlyData') {
+                renderYearlyDataTable();
+            }
         }
     });
 
@@ -2014,6 +2198,9 @@ function setupEventListeners() {
     $('#coveredYearFilter').on('change', renderAllPayments);
     $('#lastPaymentYearFilter').on('change', renderAllPayments);
     $('#lastPaymentMonthFilter').on('change', renderAllPayments);
+
+    // Yearly data filter
+    $('#yearRangeFilter').on('change', renderYearlyDataTable);
 
     $('.close-modal, .close-modal-btn').on('click', () => $('#qrModal').hide());
 
