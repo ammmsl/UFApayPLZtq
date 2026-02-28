@@ -165,10 +165,10 @@
             <div class="admin-tile-value" id="adminActivePlayers">0</div>
             <div class="admin-tile-sublabel">Last 30 Days</div>
           </div>
-          <div class="admin-tile admin-tile-purple has-tooltip" data-tooltip="Total revenue collected minus actual field booking costs from Session Input sheet. Positive values indicate profit, negative values indicate operating at a loss.">
-            <div class="admin-tile-label">Total Profit</div>
+          <div class="admin-tile admin-tile-purple has-tooltip" data-tooltip="Surcharges collected from paid sessions only. This covers equipment wear and tear, not field booking costs.">
+            <div class="admin-tile-label">Collected Profit</div>
             <div class="admin-tile-value" id="adminTotalProfit">0 MVR</div>
-            <div class="admin-tile-sublabel">Revenue - Costs</div>
+            <div class="admin-tile-sublabel">From Paid Sessions</div>
           </div>
         </div>
 
@@ -217,17 +217,42 @@
             </div>
           </div>
           <div class="admin-tile-large">
-            <div class="card-title" style="margin: 0 0 15px 0;">🎯 Top 10 Debtors</div>
-            <div id="adminTopDebtors" class="top-debtors-list"></div>
+            <div class="tab-header">
+              <button class="tab-btn active" data-tab="topDebtors">🎯 Top Debtors</button>
+              <button class="tab-btn" data-tab="yearlyData">📊 Yearly Data</button>
+            </div>
+
+            <!-- Tab: Top 10 Debtors -->
+            <div id="tabTopDebtors" class="tab-content active">
+              <div id="adminTopDebtors" class="top-debtors-list"></div>
+            </div>
+
+            <!-- Tab: Yearly Financial Data -->
+            <div id="tabYearlyData" class="tab-content">
+              <div class="filters" style="margin-bottom: 15px; padding: 15px; gap: 10px;">
+                <div class="filter-group">
+                  <label class="filter-label">Year Filter</label>
+                  <select id="yearRangeFilter" class="filter-select">
+                    <option value="all">All Years</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                  </select>
+                </div>
+              </div>
+              <div id="adminYearlyDataTable" class="yearly-data-table"></div>
+            </div>
           </div>
         </div>
 
         <!-- Additional Metrics Row -->
         <div class="admin-row admin-row-metrics">
-          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all payments received from players. This represents total revenue collected to date.">
-            <div class="admin-metric-label">Net Liquidity</div>
-            <div class="admin-metric-value" id="adminNetLiquidity">0 MVR</div>
-            <div class="admin-metric-description">Total Collected</div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Available cash for operations. Calculated as: All player payments received (Prepay + PostPay + Adjustments) minus field costs from Session Input sheet.">
+            <div class="admin-metric-label">Operating Cash</div>
+            <div class="admin-metric-value" id="adminOperatingCash">0 MVR</div>
+            <div class="admin-metric-description">Cash Available</div>
           </div>
           <div class="admin-metric-card has-tooltip" data-tooltip="Total attendance records divided by the number of unique session dates. Helps determine optimal field booking sizes.">
             <div class="admin-metric-label">Avg Attendance</div>
@@ -254,6 +279,26 @@
             <div class="admin-metric-value" id="adminRevenueTrend">--</div>
             <div class="admin-metric-description">vs Last Week</div>
           </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Surcharges from unpaid sessions that we've billed but not collected yet. Represents potential profit if all pending sessions get paid.">
+            <div class="admin-metric-label">Pending Profit</div>
+            <div class="admin-metric-value" id="adminPendingProfit">0 MVR</div>
+            <div class="admin-metric-description">From Unpaid Sessions</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Total profit if all pending sessions get paid. Calculated as: Collected Profit + Pending Profit.">
+            <div class="admin-metric-label">Potential Profit</div>
+            <div class="admin-metric-value" id="adminPotentialProfit">0 MVR</div>
+            <div class="admin-metric-description">If All Paid</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Sum of all player payments (Prepay + PostPay + Adjustments). Excludes historical Field Booking payments which were abandoned after centralization.">
+            <div class="admin-metric-label">Total Revenue</div>
+            <div class="admin-metric-value" id="adminTotalRevenue">0 MVR</div>
+            <div class="admin-metric-description">Player Payments In</div>
+          </div>
+          <div class="admin-metric-card has-tooltip" data-tooltip="Total field booking costs from Session Input sheet. Calculated from actual sessions that happened, not from payment records.">
+            <div class="admin-metric-label">Field Costs</div>
+            <div class="admin-metric-value" id="adminFieldCostsPaid">0 MVR</div>
+            <div class="admin-metric-description">Session Bookings</div>
+          </div>
         </div>
       </div>
 
@@ -275,6 +320,34 @@
                 <div style="height: 21px;"></div> <label style="display: flex; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 2px solid #e1e5e9; cursor: pointer;">
                     <input type="checkbox" id="neverPaidToggle" style="width: auto; margin-right: 8px;">
                     <span style="font-size: 0.9rem; font-weight: 600; color: #495057;">Never Paid Only</span>
+                </label>
+            </div>
+
+            <div class="filter-group" id="coveredYearFilterGroup" style="display: none;">
+                <label class="filter-label">Covered Until Year</label>
+                <select id="coveredYearFilter">
+                  <option value="all">All Years</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="lastPaymentFilterGroup" style="display: none;">
+                <label class="filter-label">Last Payment Year</label>
+                <select id="lastPaymentYearFilter">
+                  <option value="all">All Years</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="lastPaymentMonthFilterGroup" style="display: none;">
+                <label class="filter-label">Last Payment Month</label>
+                <select id="lastPaymentMonthFilter">
+                  <option value="all">All Months</option>
+                </select>
+            </div>
+
+            <div class="filter-group" id="oneSessionFilterGroup" style="display: none; justify-content: flex-end;">
+                <div style="height: 21px;"></div> <label style="display: flex; align-items: center; background: white; padding: 10px; border-radius: 12px; border: 2px solid #e1e5e9; cursor: pointer;">
+                    <input type="checkbox" id="oneSessionToggle" style="width: auto; margin-right: 8px;">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: #495057;">One Session Only</span>
                 </label>
             </div>
         </div>
